@@ -19,6 +19,15 @@ hr{
   height: 2px;
 }
 
+button{
+  background-color: #3B82F6;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
 .container{
   background-color: #fff;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -56,6 +65,7 @@ hr{
 
 #input-area{
   flex:1;
+  min-height: 10rem;
 }
 
 

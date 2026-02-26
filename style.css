@@ -43,6 +43,7 @@ button{
   align-self: flex-start;
   height: auto;
   gap: 1rem;
+  max-width:400px;
 }
 
 #documents-container section{

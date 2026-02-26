@@ -13,10 +13,17 @@ main{
   background-color: #f0f0f0;
 }
 
+hr{
+  border: none;
+  background-color: #3B82F6;
+  height: 2px;
+}
+
 .container{
   background-color: #fff;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
   border-radius: 8px;
+  padding: 1rem;
 }
 
 #documents-container{
@@ -26,10 +33,30 @@ main{
   margin: 0;
   align-self: flex-start;
   height: auto;
+  gap: 1rem;
+}
+
+#documents-container section{
+  border: 1px solid #ddd;
+  background-color: #f9f9f9;
 }
 
 #chat-container{
   display: flex;
   flex-direction: column;
   flex: 2;
+  gap: 1rem;
 }
+
+#chat-box{
+  flex:12;
+  border: 1px solid #ddd;
+  background-color: #f9f9f9;
+}
+
+#input-area{
+  flex:1;
+}
+
+
+

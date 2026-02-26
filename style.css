@@ -1,0 +1,35 @@
+/* Reset styles*/
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+main{
+  display: flex;
+  height: 100vh;
+  padding: 1rem;
+  gap: 1rem;
+  background-color: #f0f0f0;
+}
+
+.container{
+  background-color: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-radius: 8px;
+}
+
+#documents-container{
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  margin: 0;
+  align-self: flex-start;
+  height: auto;
+}
+
+#chat-container{
+  display: flex;
+  flex-direction: column;
+  flex: 2;
+}

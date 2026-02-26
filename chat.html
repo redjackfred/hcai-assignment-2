@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ChatBot</title>
+    <meta name="description" content="A simple chatbot interface built with HTML, CSS, and JavaScript." />
+    <link rel="stylesheet" href="style.css" /> 
+  </head>
+  <body>
+    <main>
+      <div id="documents-container" class="container">
+        <h2>Document Management</h2>
+        <br/>
+        <section id="upload-section">
+          <h3>Upload Document</h3>
+          <input type="file" id="file-input" />
+          <button id="upload-button">Upload</button>
+        </section>
+        <section id="documents-section">
+          <h3>Uploaded Documents</h3>
+          <ul id="documents-list">No documents uploaded yet</ul>
+        </section>
+        <section id="retrieval-method">
+          <h3>Retrieval Method</h3>
+          <select id="retrieval-select">
+            <option value="semantic">Semantic (Embeddings)</option>
+            <option value="tf-idf">TF-IDF (Keyword)</option>
+          </select>
+        </section>
+      </div>
+      <div id="chat-container" class="container">
+        <h1>AI Chat</h1>
+        <br/>
+        <div id="chat-box"></div>
+        <div id="input-area">
+          <input type="text" id="user-input" placeholder="Begin chatting..." />
+          <button id="send-button">Send</button>
+        </div>
+      </div>
+    </main>
+    <script src="script.js"></script>
+  </body>
+</html>
+
+

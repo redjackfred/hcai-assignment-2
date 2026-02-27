@@ -5,6 +5,14 @@
   box-sizing: border-box;
 }
 
+body{
+  font-family: "Roboto", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: normal;
+  font-style: normal;
+  font-variation-settings: "wdth" 100;
+}
+
 main{
   display: flex;
   height: 100vh;
@@ -92,6 +100,12 @@ button{
   background-color: #eee;
 }
 
+#retrieval-select{
+  height: 2rem;
+  border-radius: 4px;
+  padding: 4px;
+}
+
 #chat-container{
   display: flex;
   flex-direction: column;
@@ -104,6 +118,7 @@ button{
   border: 1px solid #ddd;
   background-color: #f9f9f9;
   border-radius: 4px;
+  overflow-y: auto;
 }
 
 #input-area{

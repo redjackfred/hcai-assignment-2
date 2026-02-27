@@ -9,17 +9,17 @@
   </head>
   <body>
     <main>
-      <div id="documents-container" class="container">
+      <div id="doc-panel" class="container">
         <h2>Document Management</h2>
         <hr/>
-        <section id="upload-section">
+        <form id="upload-form">
           <h3>Upload Document</h3>
           <input type="file" id="file-input" />
-          <button id="upload-button">Upload</button>
-        </section>
+          <button id="upload-btn">Upload</button>
+        </form>
         <section id="documents-section">
           <h3>Uploaded Documents</h3>
-          <ul id="documents-list">No documents uploaded yet</ul>
+          <ul id="uploaded-docs">No documents uploaded yet</ul>
         </section>
         <section id="retrieval-method">
           <h3>Retrieval Method</h3>
@@ -32,10 +32,10 @@
       <div id="chat-container" class="container">
         <h1>AI Chat</h1>
         <hr/>
-        <div id="chat-box"></div>
+        <div id="messages"></div>
         <div id="input-area">
           <input type="text" id="user-input" placeholder="Begin chatting..." />
-          <button id="send-button">Send</button>
+          <button id="send-btn">Send</button>
         </div>
       </div>
     </main>

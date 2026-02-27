@@ -1,6 +1,6 @@
 const inputField = document.getElementById("user-input");
-const sendBtn = document.getElementById("send-button");
-const messagesContainer = document.getElementById("chat-box");
+const sendBtn = document.getElementById("send-btn");
+const messagesContainer = document.getElementById("messages");
 
 function addMessage(text, type = "user") {
   const message = document.createElement("p");

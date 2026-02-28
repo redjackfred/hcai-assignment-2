@@ -10,6 +10,7 @@ function addMessage(text, type = "user") {
   message.textContent = text;
   message.className = `${type}-message`;
   messagesContainer.appendChild(message);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
 function sendMessage() {
@@ -44,5 +45,4 @@ uploadBtn.addEventListener("click", (event) => {
   const fileName = selectedFile ? selectedFile.name : "No file selected";
   console.log(`Selected file: ${fileName}`);
 });
-
 

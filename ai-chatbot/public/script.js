@@ -15,6 +15,7 @@ function addMessage(text, type = "user") {
 
 function sendMessage() {
   const userMessage = inputField.value.trim();
+  const retrievalMethod = retrievalSelect.value;
 
   if (!userMessage) {
     alert("Please enter a message before sending.");
@@ -23,6 +24,27 @@ function sendMessage() {
 
   addMessage(userMessage, "user");
   inputField.value = "";
+
+  fetch("/chat", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ message: userMessage, retrievalMethod }),
+  })
+    .then((res) => {
+      if (!res.ok) {
+        throw new Error(`Request failed with status ${res.status}`);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      const botReply = data.response || "No response from bot.";
+      addMessage(`Bot: ${botReply}`, "bot");
+    })
+    .catch((error) => {
+      console.error("Failed to send message to server:", error);
+    });
 }
 
 sendBtn.addEventListener("click", sendMessage);
@@ -45,4 +67,3 @@ uploadBtn.addEventListener("click", (event) => {
   const fileName = selectedFile ? selectedFile.name : "No file selected";
   console.log(`Selected file: ${fileName}`);
 });
-

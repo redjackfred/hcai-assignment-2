@@ -20,6 +20,7 @@ app.get('/', (_req, res) => {
 // POST /chat
 app.post('/chat', (req, res) => {
   const { message, retrievalMethod } = req.body || {};
+  const botResponse = "Message Received!";
 
   if (!message || !retrievalMethod) {
     return res.status(400).json({
@@ -30,9 +31,11 @@ app.post('/chat', (req, res) => {
   console.log('User message:', message);
   console.log('Retrieval method:', retrievalMethod);
 
+  console.log(`Bot:${botResponse}`);
+
   res.json({
     message,
-    response: 'Message Received!',
+    response: botResponse,
   });
 });
 

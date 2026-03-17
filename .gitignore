@@ -9,5 +9,5 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Environment files
-.env
+ai-chatbot/.env
 .env.local

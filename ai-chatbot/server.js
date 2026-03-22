@@ -38,12 +38,20 @@ app.post('/chat', async(req, res) => {
   let { participantID, message, retrievalMethod } = req.body || {};
   const botResponse = "Message Received!";
   try{
+
     if (!message.trim() || !retrievalMethod) {
       return res.status(400).json({
         error: 'Both "message" and "retrievalMethod" are required.',
       });
     }
 
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{role: 'user', content: message}],
+      max_tokens: 100,
+    });
+
+    let botResponse = response.choices[0].message.content.trim();
     const chat_event = new Interaction({participantID, userInput: message, botResponse});
     await chat_event.save();
 

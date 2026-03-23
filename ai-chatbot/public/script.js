@@ -5,11 +5,8 @@ const retrievalSelect = document.getElementById("retrieval-select");
 const uploadBtn = document.getElementById("upload-btn");
 const fileInput = document.getElementById("file-input");
 
-// Participant ID 
-const TEST_PARTICIPANT_ID = "peter-test-001";
-
-const participantID =
-  TEST_PARTICIPANT_ID ?? localStorage.getItem("participantID") ?? "anonymous";
+// Participant ID
+const participantID = localStorage.getItem("participantID") ?? "anonymous";
 
 function addMessage(text, type = "user") {
   const message = document.createElement("p");

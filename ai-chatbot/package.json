@@ -12,8 +12,10 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "dotenv": "^17.3.1",
     "express": "^5.2.1",
-    "mongoose": "^9.3.0"
+    "mongoose": "^9.3.0",
+    "openai": "^6.32.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

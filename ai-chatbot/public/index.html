@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Chatbot - Home</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;400;700&display=swap" rel="stylesheet">
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: 'Roboto', sans-serif;
+        background: #f0f0f0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+      .home-container {
+        background: white;
+        padding: 2.5rem;
+        border-radius: 8px;
+        max-width: 500px;
+        width: 100%;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      }
+      h1 {
+        font-size: 1.8rem;
+        color: #1e3a5f;
+        margin-bottom: 1rem;
+      }
+      p {
+        color: #555;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+      }
+      .participant-section label {
+        display: block;
+        font-weight: 700;
+        margin-bottom: 0.4rem;
+        color: #333;
+      }
+      .participant-section input {
+        width: 100%;
+        padding: 0.6rem 0.8rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+      }
+      .participant-section button {
+        width: 100%;
+        padding: 0.7rem;
+        background: #3B82F6;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+      .participant-section button:hover {
+        background: #2563eb;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="home-container">
+      <h1>AI Chatbot</h1>
+      <div>
+        <p>
+          Welcome to the AI Chatbot research study. This chatbot is powered by OpenAI and allows you
+          to have a conversation with an AI assistant. Your interactions will be logged for research purposes.
+        </p>
+        <p>
+          Please enter your Participant ID below to begin. Your chat history will be saved and
+          restored each time you return.
+        </p>
+      </div>
+      <div class="participant-section">
+        <label for="participant-id-input">Participant ID</label>
+        <input type="text" id="participant-id-input" placeholder="Enter your Participant ID" />
+        <button id="start-btn">Start Chatting</button>
+      </div>
+    </div>
+    <script>
+      document.getElementById('start-btn').addEventListener('click', () => {
+        const participantID = document.getElementById('participant-id-input').value.trim();
+        if (!participantID) {
+          alert('Please enter a Participant ID before continuing.');
+          return;
+        }
+        localStorage.setItem('participantID', participantID);
+        window.location.href = '/chat';
+      });
+    </script>
+  </body>
+</html>

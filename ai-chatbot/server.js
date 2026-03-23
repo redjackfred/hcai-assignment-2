@@ -30,6 +30,10 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/chat', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'chat.html'));
 });
 

@@ -1,5 +1,5 @@
 const fs = require('fs').promises;
-const pdfParse = require('pdf-parse');
+const { PDFParse } = require('pdf-parse')
 const { cleanText, chunkText } = require('../utils/textUtils');
 
 class DocumentProcessor {
@@ -54,7 +54,8 @@ class DocumentProcessor {
   async extractPdfText(filePath) {
     try {
       const dataBuffer = await fs.readFile(filePath);
-      const pdfData = await pdfParse(dataBuffer);
+      const parser = new PDFParse({ data: dataBuffer });
+      const pdfData = await parser.getText();
       return pdfData.text;
     } catch (error) {
       console.error('Error extracting PDF text:', error);

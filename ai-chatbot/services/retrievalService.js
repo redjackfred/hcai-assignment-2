@@ -1,5 +1,6 @@
-const natural = require('natural');
-const TfIdf = natural.TfIdf;
+// const natural = require('natural');
+// const TfIdf = natural.TfIdf;
+const TfIdf = require('natural/lib/natural/tfidf/tfidf');
 const Document = require('../models/Document');
 const { cosineSimilarity } = require('../utils/vectorUtils');
 const embeddingService = require('./embeddingService');

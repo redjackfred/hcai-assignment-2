@@ -5,6 +5,7 @@ const bodyParser = require('body-parser');
 const OpenAI = require('openai');
 const mongoose = require('mongoose');
 require('dotenv').config();
+const multer = require("multer");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,10 +13,10 @@ const publicDir = path.join(__dirname, 'public');
 //////////////////// MongoDB CODE BELOW////////////////////
 const Interaction = require('./models/Interaction');
 const EventLog = require('./models/EventLog');
-
-mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log('Connected to MongoDB'))
-    .catch(err => console.error('Error connecting to MongoDB:', err));
+const Document = require('./models/Document');
+const documentProcessor = require("./services/documentProcessor");
+const embeddingService = require('./services/embeddingService');
+const retrievalService = require('./services/retrievalService');
 
 ////////////////////OpenAI CODE BELOW////////////////////
 const openai = new OpenAI({
@@ -101,7 +102,56 @@ app.post('/history', async (req, res) => {
   }
 });
 
+////////////////////Doc Process CODE BELOW////////////////////
+// Save uploaded files so documentProcessor.js can read them
+const upload = multer({ dest: path.join(__dirname, 'uploads') });
+app.post("/upload-document", upload.single("document") , async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No file uploaded" });
+    }
 
-app.listen(PORT, () => {
-  console.log(`Server listening on http://localhost:${PORT}`);
+    const processed = await documentProcessor.processDocument(req.file);
+    const chunksWithEmbeddings = await embeddingService.generateEmbeddings(processed.chunks);
+
+    const document = new Document({
+      filename: req.file.originalname,
+      text: processed.fullText,
+      processingStatus: "processing"
+    });
+
+    document.chunks = chunksWithEmbeddings;
+    document.processingStatus = "completed";
+    await document.save();
+
+    await retrievalService.rebuildIndex();
+
+    res.json({
+      status: "ok",
+      filename: req.file.originalname,
+      chunkCount: chunksWithEmbeddings.length
+    });
+  } catch (error) {
+    console.error('Error uploading document:', error);
+    res.status(500).json({ error: 'Failed to upload document' });
+  }
 });
+
+app.get("/documents", async (req, res) => {
+  const docs = await Document.find({})
+      .select("_id filename processingStatus processedAt")
+      .sort({ processedAt: -1 });
+  res.json(docs);
+});
+
+mongoose.connect(process.env.MONGO_URI)
+    .then(async () => {
+      console.log('Connected to MongoDB');
+      await retrievalService.initialize();
+
+      app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+      });
+    })
+    .catch(err => console.error(err));
+////////////////////End Doc Process CODE BELOW////////////////////

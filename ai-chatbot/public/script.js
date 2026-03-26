@@ -50,6 +50,8 @@ function sendMessage() {
     });
 }
 
+loadDocuments();
+
 sendBtn.addEventListener("click", sendMessage);
 
 inputField.addEventListener("keydown", (event) => {
@@ -64,12 +66,47 @@ retrievalSelect.addEventListener("change", (event) => {
   console.log(`Retrieval method: ${method}`);
 });
 
-uploadBtn.addEventListener("click", (event) => {
+uploadBtn.addEventListener("click", async (event) => {
   event.preventDefault();
-  const selectedFile = fileInput.files?.[0];
-  const fileName = selectedFile ? selectedFile.name : "No file selected";
-  console.log(`Selected file: ${fileName}`);
+  const file = fileInput.files?.[0];
+
+  if (!file) {
+    alert("Choose a file first.");
+    return;
+  }
+
+  console.log(`Selected file: ${file.name}`);
+
+  const formData = new FormData();
+  formData.append("document", file);
+
+  const response = await fetch("/upload-document", {
+    method: "POST",
+    body: formData
+  });
+
+  const data = await response.json();
+  console.log(data);
+
+  await loadDocuments();
 });
+
+async function loadDocuments() {
+  const response = await fetch("/documents");
+  const docs = await response.json();
+
+  const documentsList = document.getElementById("uploaded-docs");
+  if (!documentsList) return;
+  documentsList.innerHTML = "";
+
+  docs.forEach(doc => {
+    const listItem = document.createElement("li");
+    listItem.textContent = `${doc.filename} - ${doc.processingStatus}`;
+    documentsList.appendChild(listItem);
+  });
+
+}
+
 
 // Event logging 
 function logEvent(eventType, elementName) {
@@ -81,16 +118,16 @@ function logEvent(eventType, elementName) {
 }
 
 const trackedElements = [
-  { el: sendBtn,       name: "send-btn" },
-  { el: inputField,    name: "user-input" },
+  { el: sendBtn, name: "send-btn" },
+  { el: inputField, name: "user-input" },
   { el: retrievalSelect, name: "retrieval-select" },
-  { el: uploadBtn,     name: "upload-btn" },
+  { el: uploadBtn, name: "upload-btn" },
 ];
 
 trackedElements.forEach(({ el, name }) => {
-  el.addEventListener("click",      () => logEvent("click",  name));
-  el.addEventListener("mouseenter", () => logEvent("hover",  name));
-  el.addEventListener("focus",      () => logEvent("focus",  name));
+  el.addEventListener("click", () => logEvent("click", name));
+  el.addEventListener("mouseenter", () => logEvent("hover", name));
+  el.addEventListener("focus", () => logEvent("focus", name));
 });
 
 // Load chat history on page load 

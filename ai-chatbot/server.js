@@ -51,6 +51,8 @@ app.post('/chat', async (req, res) => {
     }
 
     const relevantChunks = await retrievalService.retrieve(message, { topK: 3, method: retrievalMethod, minScore: retrievalMethod === 'tfidf' ? 0.1 : 0.3 });
+    console.log(`[retrieval] method=${retrievalMethod}, found=${relevantChunks.length} chunks`);
+    relevantChunks.forEach((c, i) => console.log(`  [${i}] doc="${c.documentName}" score=${c.relevanceScore?.toFixed(4)} chunkIndex=${c.chunkIndex}`));
 
     const contextText = relevantChunks.length > 0
       ? relevantChunks.map(c => `[Source: ${c.documentName}]\n${c.chunkText}`).join("\n\n---\n\n")

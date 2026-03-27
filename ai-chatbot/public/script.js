@@ -44,6 +44,7 @@ function sendMessage() {
     .then((data) => {
       const botReply = data.response || "No response from bot.";
       addMessage(`Bot: ${botReply}`, "bot");
+      displayEvidence(data.retrievedDocuments, data.confidenceMetrics);
     })
     .catch((error) => {
       console.error("Failed to send message to server:", error);
@@ -86,8 +87,13 @@ uploadBtn.addEventListener("click", async (event) => {
   });
 
   const data = await response.json();
-  console.log(data);
 
+  if (!response.ok) {
+    alert(`Upload failed: ${data.error || "Unknown error"}`);
+    return;
+  }
+
+  alert(`Uploaded "${data.filename}" (${data.chunkCount} chunks)`);
   await loadDocuments();
 });
 
@@ -108,7 +114,34 @@ async function loadDocuments() {
 }
 
 
-// Event logging 
+function displayEvidence(retrievedDocuments, confidenceMetrics) {
+  const confidenceDisplay = document.getElementById("confidence-display");
+  const evidenceList = document.getElementById("evidence-list");
+
+  if (confidenceMetrics) {
+    const pct = (confidenceMetrics.overallConfidence * 100).toFixed(1);
+    confidenceDisplay.textContent = `Confidence: ${pct}%`;
+  } else {
+    confidenceDisplay.textContent = "Confidence: —";
+  }
+
+  evidenceList.innerHTML = "";
+  if (retrievedDocuments && retrievedDocuments.length > 0) {
+    retrievedDocuments.forEach(doc => {
+      const li = document.createElement("li");
+      const score = doc.relevanceScore.toFixed(3);
+      const preview = doc.chunkText.length > 120 ? doc.chunkText.slice(0, 120) + "…" : doc.chunkText;
+      li.innerHTML = `<strong>${doc.docName}</strong> <span class="evidence-score">(score: ${score})</span><br><small>${preview}</small>`;
+      evidenceList.appendChild(li);
+    });
+  } else {
+    const li = document.createElement("li");
+    li.textContent = "No evidence retrieved.";
+    evidenceList.appendChild(li);
+  }
+}
+
+// Event logging
 function logEvent(eventType, elementName) {
   fetch("/log-event", {
     method: "POST",

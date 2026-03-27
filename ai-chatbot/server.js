@@ -17,6 +17,7 @@ const Document = require('./models/Document');
 const documentProcessor = require("./services/documentProcessor");
 const embeddingService = require('./services/embeddingService');
 const retrievalService = require('./services/retrievalService');
+const confidenceCalculator = require('./services/confidenceCalculator');
 
 ////////////////////OpenAI CODE BELOW////////////////////
 const openai = new OpenAI({
@@ -73,32 +74,33 @@ app.post('/chat', async (req, res) => {
     });
 
     const botResponse = response.choices[0].message.content.trim();
-    const topScore = relevantChunks.length > 0 ? relevantChunks[0].relevanceScore : 0;
+
+    const retrievedDocuments = relevantChunks.map(chunk => ({
+      docName: chunk.documentName,
+      chunkIndex: chunk.chunkIndex,
+      chunkText: chunk.chunkText,
+      relevanceScore: chunk.relevanceScore
+    }));
+
+    const confidenceMetrics = confidenceCalculator.calculate({
+      retrievedDocs: relevantChunks,
+      retrievalMethod
+    });
+
     const chat_event = new Interaction({
       participantID,
       userInput: message,
       botResponse,
-      retrievalMethod: retrievalMethod,
-      // Map retrievalService fields to Interaction Schema fields
-      retrievedDocuments: relevantChunks.map(chunk => ({
-        docName: chunk.documentName, // Maps 'documentName' to 'docName'
-        chunkIndex: chunk.chunkIndex,
-        chunkText: chunk.chunkText,
-        relevanceScore: chunk.relevanceScore
-      })),
-      confidenceMetrics: {
-        overallConfidence: Math.min(topScore * 1.2, 1), // Example weight
-        retrievalConfidence: topScore,
-        responseConfidence: 0.9, // Fixed or derived from Logprobs if enabled
-        retrievalMethod: retrievalMethod
-      }
+      retrievalMethod,
+      retrievedDocuments,
+      confidenceMetrics
     });
     await chat_event.save();
 
     res.json({
-      message,
       response: botResponse,
-      sources: relevantChunks.length
+      retrievedDocuments,
+      confidenceMetrics
     });
   } catch (e) {
     console.error('Error processing chat request:', e);

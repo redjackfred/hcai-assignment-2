@@ -64,9 +64,10 @@ app.post('/chat', async (req, res) => {
       messages: [
         {
           role: 'system',
-          content: `You are a professional assistant. Answer the user's questions based on the "Reference Materials" provided below. 
+          content: `You are a professional assistant. Answer the user's questions based on the "Reference Materials" provided below.
           If the materials do not contain relevant information, state this honestly.
-          
+          Format your response using Markdown (use headings, bullet points, bold, or code blocks where appropriate).
+
           ### Reference Materials ###
           ${contextText}`
         },

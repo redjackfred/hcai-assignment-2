@@ -9,10 +9,19 @@ const fileInput = document.getElementById("file-input");
 const participantID = localStorage.getItem("participantID") ?? "anonymous";
 
 function addMessage(text, type = "user") {
-  const message = document.createElement("p");
-  message.textContent = text;
-  message.className = `${type}-message`;
-  messagesContainer.appendChild(message);
+  const wrapper = document.createElement("div");
+  wrapper.className = `message-wrapper ${type}-wrapper`;
+
+  const bubble = document.createElement("div");
+  bubble.className = `message-bubble ${type}-message`;
+  if (type === "bot") {
+    bubble.innerHTML = marked.parse(text);
+  } else {
+    bubble.textContent = text;
+  }
+
+  wrapper.appendChild(bubble);
+  messagesContainer.appendChild(wrapper);
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
 }
 
@@ -43,7 +52,7 @@ function sendMessage() {
     })
     .then((data) => {
       const botReply = data.response || "No response from bot.";
-      addMessage(`Bot: ${botReply}`, "bot");
+      addMessage(botReply, "bot");
       displayEvidence(data.retrievedDocuments, data.confidenceMetrics);
     })
     .catch((error) => {
@@ -184,7 +193,7 @@ fetch("/history", {
     console.log(`[history] loading ${history.length} message(s)`);
     history.forEach(({ userInput, botResponse }) => {
       addMessage(userInput, "user");
-      addMessage(`Bot: ${botResponse}`, "bot");
+      addMessage(botResponse, "bot");
     });
   })
   .catch((err) => console.error("[history] Failed to load chat history:", err));

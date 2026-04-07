@@ -11,3 +11,4 @@ pnpm-debug.log*
 # Environment files
 ai-chatbot/.env
 .env.local
+.idea

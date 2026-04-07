@@ -77,21 +77,24 @@
           restored each time you return.
         </p>
       </div>
-      <div class="participant-section">
+      <form id="participant-form" class="participant-section">
         <label for="participant-id-input">Participant ID</label>
-        <input type="text" id="participant-id-input" placeholder="Enter your Participant ID" />
-        <button id="start-btn">Start Chatting</button>
-      </div>
+        <input type="text" id="participant-id-input" placeholder="Enter your Participant ID" required />
+        <button type="submit">Start Chatting</button>
+      </form>
     </div>
     <script>
-      document.getElementById('start-btn').addEventListener('click', () => {
+      document.getElementById('participant-form').addEventListener('submit', function(event) {
+        event.preventDefault();
         const participantID = document.getElementById('participant-id-input').value.trim();
         if (!participantID) {
           alert('Please enter a Participant ID before continuing.');
           return;
         }
         localStorage.setItem('participantID', participantID);
-        window.location.href = '/chat';
+        const systemID = parseInt(participantID) % 2 === 1 ? 1 : 2;
+        console.log('systemID', systemID)
+        window.location.href = `/chat?participantID=${encodeURIComponent(participantID)}&systemID=${systemID}`;
       });
     </script>
   </body>

@@ -5,8 +5,14 @@ const retrievalSelect = document.getElementById("retrieval-select");
 const uploadBtn = document.getElementById("upload-btn");
 const fileInput = document.getElementById("file-input");
 
-// Participant ID
-const participantID = localStorage.getItem("participantID") ?? "anonymous";
+// Participant ID — prefer URL query string, fall back to localStorage
+const _urlParams = new URLSearchParams(window.location.search);
+const participantID = _urlParams.get("participantID") || localStorage.getItem("participantID") || "anonymous";
+const systemID = _urlParams.get("systemID") || null;
+
+// In-memory conversation history for multi-turn context
+const HISTORY_LIMIT = 5;
+const conversationHistory = [];
 
 function addMessage(text, type = "user") {
   const wrapper = document.createElement("div");
@@ -37,12 +43,14 @@ function sendMessage() {
   addMessage(userMessage, "user");
   inputField.value = "";
 
+  const recentHistory = conversationHistory.slice(-HISTORY_LIMIT);
+
   fetch("/chat", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ message: userMessage, retrievalMethod, participantID }),
+    body: JSON.stringify({ message: userMessage, retrievalMethod, participantID, systemID, conversationHistory: recentHistory }),
   })
     .then((res) => {
       if (!res.ok) {
@@ -54,6 +62,8 @@ function sendMessage() {
       const botReply = data.response || "No response from bot.";
       addMessage(botReply, "bot");
       displayEvidence(data.retrievedDocuments, data.confidenceMetrics);
+      conversationHistory.push({ role: "user", content: userMessage });
+      conversationHistory.push({ role: "assistant", content: botReply });
     })
     .catch((error) => {
       console.error("Failed to send message to server:", error);
@@ -172,28 +182,33 @@ trackedElements.forEach(({ el, name }) => {
   el.addEventListener("focus", () => logEvent("focus", name));
 });
 
-// Load chat history on page load 
-console.log("[history] fetching history for participantID:", participantID);
-fetch("/history", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ participantID }),
-})
-  .then((res) => {
+async function loadConversationHistory() {
+  console.log("[history] fetching history for participantID:", participantID);
+  try {
+    const res = await fetch("/history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ participantID }),
+    });
     console.log("[history] response status:", res.status);
-    return res.json();
-  })
-  .then((data) => {
+    const data = await res.json();
     console.log("[history] data received:", data);
-    const history = Array.isArray(data) ? data : data.history;
-    if (!history || history.length === 0) {
+    const allHistory = Array.isArray(data) ? data : data.history;
+    if (!allHistory || allHistory.length === 0) {
       console.log("[history] no history found for this participant");
       return;
     }
-    console.log(`[history] loading ${history.length} message(s)`);
-    history.forEach(({ userInput, botResponse }) => {
+    const recent = allHistory.slice(-HISTORY_LIMIT);
+    console.log(`[history] loading last ${recent.length} interaction(s)`);
+    recent.forEach(({ userInput, botResponse }) => {
       addMessage(userInput, "user");
       addMessage(botResponse, "bot");
+      conversationHistory.push({ role: "user", content: userInput });
+      conversationHistory.push({ role: "assistant", content: botResponse });
     });
-  })
-  .catch((err) => console.error("[history] Failed to load chat history:", err));
+  } catch (err) {
+    console.error("[history] Failed to load chat history:", err);
+  }
+}
+
+loadConversationHistory();

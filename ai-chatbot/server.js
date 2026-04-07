@@ -41,7 +41,7 @@ app.get('/chat', (_req, res) => {
 
 // POST /chat
 app.post('/chat', async (req, res) => {
-  let { participantID, message, retrievalMethod } = req.body || {};
+  let { participantID, message, retrievalMethod, systemID, conversationHistory } = req.body || {};
   try {
 
     if (!message.trim() || !retrievalMethod) {
@@ -59,6 +59,7 @@ app.post('/chat', async (req, res) => {
       : "No relevant reference materials found.";
 
 
+    const priorMessages = Array.isArray(conversationHistory) ? conversationHistory : [];
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -71,6 +72,7 @@ app.post('/chat', async (req, res) => {
           ### Reference Materials ###
           ${contextText}`
         },
+        ...priorMessages,
         { role: 'user', content: message }
       ],
       max_tokens: 300,

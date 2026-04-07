@@ -11,6 +11,21 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;400;700&display=swap" rel="stylesheet">
   </head>
   <body>
+    <div id="system-banner"></div>
+    <script>
+      (function() {
+        const params = new URLSearchParams(window.location.search);
+        const systemID = params.get('systemID');
+        const banner = document.getElementById('system-banner');
+        if (systemID === '2') {
+          banner.textContent = 'System 2 — Enhanced';
+          banner.style.cssText = 'background:#d1fae5;color:#065f46;text-align:center;padding:6px;font-size:0.85rem;font-family:Roboto,sans-serif;';
+        } else {
+          banner.textContent = 'System 1 — Baseline';
+          banner.style.cssText = 'background:#dbeafe;color:#1e3a5f;text-align:center;padding:6px;font-size:0.85rem;font-family:Roboto,sans-serif;';
+        }
+      })();
+    </script>
     <main>
       <div id="doc-panel" class="container">
         <h2>Document Management</h2>

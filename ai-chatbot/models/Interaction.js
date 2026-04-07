@@ -17,6 +17,7 @@ const ConfidenceMetricsSchema = new mongoose.Schema({
 
 const InteractionSchema = new Schema({
     participantID: String, // Unique identifier for the participant
+    systemID: { type: Number, default: null }, // 1 = baseline, 2 = enhanced
     userInput: String, // Store the user's message
     botResponse: String, // Store the bot's response
     retrievalMethod: { type: String },

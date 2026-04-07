@@ -94,6 +94,7 @@ app.post('/chat', async (req, res) => {
 
     const chat_event = new Interaction({
       participantID,
+      systemID: systemID ? Number(systemID) : null,
       userInput: message,
       botResponse,
       retrievalMethod,
@@ -115,13 +116,13 @@ app.post('/chat', async (req, res) => {
 
 // Post /log-event
 app.post('/log-event', async (req, res) => {
-  const { participantID, eventType, elementName } = req.body;
+  const { participantID, systemID, eventType, elementName } = req.body;
   try {
     if (!participantID || !eventType || !elementName) {
       return res.status(400).json({ error: 'participantID, eventType, elementName, and timestamp are required' });
     }
     // Log the event to MongoDB
-    const event = new EventLog({ participantID, eventType, elementName });
+    const event = new EventLog({ participantID, systemID: systemID ? Number(systemID) : null, eventType, elementName });
     await event.save();
     res.status(200).send('Event logged successfully');
   } catch (error) {
@@ -130,17 +131,22 @@ app.post('/log-event', async (req, res) => {
   }
 });
 
-// Post /history
+// Post /history — returns last 5 interactions for the participant
 app.post('/history', async (req, res) => {
   const { participantID } = req.body;
   try {
     if (!participantID) {
       return res.status(400).json({ error: 'participantID is required' });
     }
-    const events = await Interaction.find({ participantID }).sort({ timestamp: 1 });
-    res.status(200).json(events);
+    const interactions = await Interaction
+      .find({ participantID })
+      .sort({ timestamp: -1 })
+      .limit(5)
+      .lean();
+    // Return in chronological order
+    res.status(200).json(interactions.reverse());
   } catch (error) {
-    console.error('Error logging event:', error.message);
+    console.error('Error fetching history:', error.message);
     res.status(500).send('Server Error');
   }
 });

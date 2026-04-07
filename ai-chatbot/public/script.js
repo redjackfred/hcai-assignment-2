@@ -165,7 +165,7 @@ function logEvent(eventType, elementName) {
   fetch("/log-event", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ participantID, eventType, elementName }),
+    body: JSON.stringify({ participantID, systemID, eventType, elementName }),
   }).catch((err) => console.error("Failed to log event:", err));
 }
 

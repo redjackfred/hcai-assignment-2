@@ -24,6 +24,44 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+function buildSystemPrompt({ systemID, storySettings, contextText }) {
+  console.log('[buildSystemPrompt] systemID=%s storySettings=%s', systemID, JSON.stringify(storySettings));
+  if (Number(systemID) % 2 === 0 && storySettings) {
+    const readLevelInstructions = {
+      easy:   'Use simple vocabulary and short explanations suitable for young children (grades 1–3). Avoid complex words.',
+      medium: 'Use moderate vocabulary suitable for middle-grade readers (grades 4–6).',
+      hard:   'Use sophisticated vocabulary, varied sentence structures, and rich literary language suitable for advanced readers.',
+    };
+    const readLevel = readLevelInstructions[storySettings.readLevel] || readLevelInstructions.medium;
+    const wordLimit = Number(storySettings.sentenceLength) || 20;
+    const sentenceLength = `Each sentence must not exceed ${wordLimit} words.`;
+    const themeLine = storySettings.theme
+      ? `Weave the following themes or elements naturally into the story: ${storySettings.theme}.`
+      : '';
+
+    console.log('[buildSystemPrompt] readLevel ->', storySettings.readLevel, '|', readLevel);
+    console.log('[buildSystemPrompt] sentenceLength -> max %d words', wordLimit);
+    console.log('[buildSystemPrompt] theme ->', storySettings.theme);
+
+    return `You are a creative story-telling AI. Generate engaging, imaginative stories based on the user's request.
+${readLevel}
+${sentenceLength}
+${themeLine}
+Format your response using Markdown. If reference materials are provided, incorporate relevant details naturally into the story.
+
+### Reference Materials ###
+${contextText}`;
+  }
+
+  // Default system 1 prompt
+  return `You are a professional assistant. Answer the user's questions based on the "Reference Materials" provided below.
+If the materials do not contain relevant information, state this honestly.
+Format your response using Markdown (use headings, bullet points, bold, or code blocks where appropriate).
+
+### Reference Materials ###
+${contextText}`;
+}
+
 // Serves static files from the "public" folder
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -39,9 +77,14 @@ app.get('/chat', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'chat.html'));
 });
 
+app.get('/chat2', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'chat2.html'));
+});
+
 // POST /chat
 app.post('/chat', async (req, res) => {
-  let { participantID, message, retrievalMethod, systemID, conversationHistory } = req.body || {};
+  let { participantID, message, retrievalMethod, systemID, conversationHistory, storySettings } = req.body || {};
+  console.log('[POST /chat] participantID=%s systemID=%s retrievalMethod=%s storySettings=%s', participantID, systemID, retrievalMethod, JSON.stringify(storySettings));
   try {
 
     if (!message.trim() || !retrievalMethod) {
@@ -58,20 +101,13 @@ app.post('/chat', async (req, res) => {
       ? relevantChunks.map(c => `[Source: ${c.documentName}]\n${c.chunkText}`).join("\n\n---\n\n")
       : "No relevant reference materials found.";
 
+    const systemPrompt = buildSystemPrompt({ systemID, storySettings, contextText });
 
     const priorMessages = Array.isArray(conversationHistory) ? conversationHistory : [];
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
-        {
-          role: 'system',
-          content: `You are a professional assistant. Answer the user's questions based on the "Reference Materials" provided below.
-          If the materials do not contain relevant information, state this honestly.
-          Format your response using Markdown (use headings, bullet points, bold, or code blocks where appropriate).
-
-          ### Reference Materials ###
-          ${contextText}`
-        },
+        { role: 'system', content: systemPrompt },
         ...priorMessages,
         { role: 'user', content: message }
       ],

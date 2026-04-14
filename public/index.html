@@ -93,8 +93,8 @@
         }
         localStorage.setItem('participantID', participantID);
         const systemID = parseInt(participantID) % 2 === 1 ? 1 : 2;
-        console.log('systemID', systemID)
-        window.location.href = `/chat?participantID=${encodeURIComponent(participantID)}&systemID=${systemID}`;
+        const route = systemID === 2 ? '/chat2' : '/chat';
+        window.location.href = `${route}?participantID=${encodeURIComponent(participantID)}&systemID=${systemID}`;
       });
     </script>
   </body>

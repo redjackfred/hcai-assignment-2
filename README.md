@@ -7,7 +7,6 @@ From the project root:
 
 ```bash
 # Install dependencies
-cd ai-chatbot
 npm install
 
 # Development (auto-restart)
@@ -21,7 +20,7 @@ Then open `http://localhost:3000` in your browser.
 
 ## Environment Variables
 
-Create `ai-chatbot/.env`:
+Create `.env`:
 
 ```
 OPENAI_API_KEY=your_openai_api_key

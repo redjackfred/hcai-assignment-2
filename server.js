@@ -10,6 +10,7 @@ const multer = require("multer");
 const app = express();
 const PORT = process.env.PORT || 3000;
 const publicDir = path.join(__dirname, 'public');
+const QUALTRICS_SURVEY_URL = 'https://usfca.qualtrics.com/jfe/form/SV_8kSV6w3WpE3X5ga';
 //////////////////// MongoDB CODE BELOW////////////////////
 const Interaction = require('./models/Interaction');
 const EventLog = require('./models/EventLog');
@@ -79,6 +80,19 @@ app.get('/chat', (_req, res) => {
 
 app.get('/chat2', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'chat2.html'));
+});
+
+app.post('/redirect-to-survey', (req, res) => {
+  const participantID = (req.body?.participantID || '').trim();
+
+  if (!participantID) {
+    return res.status(400).send('participantID is required');
+  }
+
+  const surveyUrl = new URL(QUALTRICS_SURVEY_URL);
+  surveyUrl.searchParams.set('participantID', participantID);
+
+  res.send(surveyUrl.toString());
 });
 
 // POST /chat

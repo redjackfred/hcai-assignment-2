@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Study Workflow</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body {
+        background: #f3f4f6;
+      }
+
+      .workflow-shell {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+
+      .workflow-card {
+        width: min(760px, 100%);
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+        padding: 32px;
+      }
+
+      .workflow-card h1 {
+        margin-bottom: 12px;
+        color: #1e3a5f;
+      }
+
+      .workflow-card p {
+        color: #4b5563;
+        line-height: 1.6;
+      }
+
+      .workflow-meta {
+        margin: 20px 0 28px;
+        padding: 16px;
+        border-radius: 10px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+      }
+
+      .workflow-meta strong {
+        color: #1e3a5f;
+      }
+
+      #workflow-list {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        margin-top: 20px;
+      }
+
+      .workflow-btn {
+        width: 100%;
+        text-align: left;
+        padding: 16px 18px;
+        border-radius: 12px;
+        font-size: 1rem;
+        line-height: 1.4;
+      }
+
+      .workflow-btn.secondary {
+        background: #0f766e;
+      }
+
+      .workflow-btn.ghost {
+        background: #4b5563;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="workflow-shell">
+      <section class="workflow-card">
+        <h1>Study Workflow</h1>
+        <p>Please complete the following steps in order before starting the AI system.</p>
+
+        <div class="workflow-meta">
+          <p><strong>Participant ID:</strong> <span id="participant-id-display">—</span></p>
+          <p><strong>Assigned System:</strong> <span id="system-id-display">—</span></p>
+        </div>
+
+        <ol id="workflow-list">
+          <li>
+            <button id="survey-btn" class="workflow-btn" type="button">
+              1. Complete the demographics questionnaire
+            </button>
+          </li>
+          <li>
+            <button id="task-btn" class="workflow-btn secondary" type="button">
+              2. Read the task instructions
+            </button>
+          </li>
+          <li>
+            <button id="prototype-btn" class="workflow-btn ghost" type="button">
+              3. Use the AI system to complete the task
+            </button>
+          </li>
+        </ol>
+      </section>
+    </main>
+    <script src="workflow.js"></script>
+  </body>
+</html>

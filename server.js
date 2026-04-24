@@ -27,25 +27,39 @@ const openai = new OpenAI({
 function buildSystemPrompt({ systemID, storySettings, contextText }) {
   console.log('[buildSystemPrompt] systemID=%s storySettings=%s', systemID, JSON.stringify(storySettings));
   if (Number(systemID) % 2 === 0 && storySettings) {
+    const selectedReadLevel = storySettings.readLevel || 'medium';
     const readLevelInstructions = {
       easy:   'Use simple vocabulary and short explanations suitable for young children (grades 1–3). Avoid complex words.',
       medium: 'Use moderate vocabulary suitable for middle-grade readers (grades 4–6).',
       hard:   'Use sophisticated vocabulary, varied sentence structures, and rich literary language suitable for advanced readers.',
     };
-    const readLevel = readLevelInstructions[storySettings.readLevel] || readLevelInstructions.medium;
+    const storyLengthConfig = {
+      easy: { sentenceMultiplier: 6, minWords: 90, maxWords: 180 },
+      medium: { sentenceMultiplier: 8, minWords: 160, maxWords: 300},
+      hard: { sentenceMultiplier: 10, minWords: 260, maxWords: 480},
+    };
+    const readLevel = readLevelInstructions[selectedReadLevel] || readLevelInstructions.medium;
     const wordLimit = Number(storySettings.sentenceLength) || 20;
     const sentenceLength = `Each sentence must not exceed ${wordLimit} words.`;
+    const lengthConfig = storyLengthConfig[selectedReadLevel] || storyLengthConfig.medium;
+    const targetWordCount = Math.min(
+      lengthConfig.maxWords,
+      Math.max(lengthConfig.minWords, wordLimit * lengthConfig.sentenceMultiplier)
+    );
+    const storyLengthInstruction = `Because the read level is "${selectedReadLevel}", keep the full story around ${targetWordCount} words total and organize it into about ${lengthConfig.paragraphs} short paragraphs. Lower read levels must produce shorter stories than higher read levels.`;
     const themeLine = storySettings.theme
       ? `Weave the following themes or elements naturally into the story: ${storySettings.theme}.`
       : '';
 
-    console.log('[buildSystemPrompt] readLevel ->', storySettings.readLevel, '|', readLevel);
+    console.log('[buildSystemPrompt] readLevel ->', selectedReadLevel, '|', readLevel);
     console.log('[buildSystemPrompt] sentenceLength -> max %d words', wordLimit);
+    console.log('[buildSystemPrompt] targetWordCount -> %d', targetWordCount);
     console.log('[buildSystemPrompt] theme ->', storySettings.theme);
 
     return `You are a creative story-telling AI. Generate engaging, imaginative stories based on the user's request.
 ${readLevel}
 ${sentenceLength}
+${storyLengthInstruction}
 ${themeLine}
 Make the story complete, with a clear ending instead of stopping mid-scene.
 Format your response using Markdown.
@@ -106,7 +120,15 @@ app.post('/chat', async (req, res) => {
       : "No relevant reference materials found.";
 
     const systemPrompt = buildSystemPrompt({ systemID, storySettings, contextText });
-    const maxTokens = Number(systemID) % 2 === 0 ? 700 : 300;
+    const storyTokenBudgets = {
+      easy: 320,
+      medium: 520,
+      hard: 760,
+    };
+    const storyReadLevel = storySettings?.readLevel || 'medium';
+    const maxTokens = Number(systemID) % 2 === 0
+      ? (storyTokenBudgets[storyReadLevel] || storyTokenBudgets.medium)
+      : 300;
 
     const priorMessages = Array.isArray(conversationHistory) ? conversationHistory : [];
     const response = await openai.chat.completions.create({

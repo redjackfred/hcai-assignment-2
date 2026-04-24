@@ -4,6 +4,10 @@ const messagesContainer = document.getElementById("messages");
 const retrievalSelect = document.getElementById("retrieval-select");
 const uploadBtn = document.getElementById("upload-btn");
 const fileInput = document.getElementById("file-input");
+const readLevelSlider = document.getElementById("read-level-slider");
+const sentenceLengthSlider = document.getElementById("sentence-length-slider");
+const themeCustomInputField = document.getElementById("theme-custom-input");
+const themeChipButtons = document.querySelectorAll(".theme-chip");
 
 const _urlParams = new URLSearchParams(window.location.search);
 const participantID = _urlParams.get("participantID") || localStorage.getItem("participantID") || "anonymous";
@@ -152,11 +156,24 @@ const trackedElements = [
   { el: inputField, name: "user-input" },
   { el: retrievalSelect, name: "retrieval-select" },
   { el: uploadBtn, name: "upload-btn" },
+  { el: readLevelSlider, name: "read-level-slider" },
+  { el: sentenceLengthSlider, name: "sentence-length-slider" },
+  { el: themeCustomInputField, name: "theme-custom-input" },
 ];
 trackedElements.forEach(({ el, name }) => {
   el.addEventListener("click", () => logEvent("click", name));
   el.addEventListener("mouseenter", () => logEvent("hover", name));
   el.addEventListener("focus", () => logEvent("focus", name));
+});
+
+themeChipButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    logEvent("click", "theme-button");
+  });
+});
+
+themeCustomInputField.addEventListener("change", () => {
+  logEvent("change", "theme-custom-input");
 });
 
 async function loadConversationHistory() {

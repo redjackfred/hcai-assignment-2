@@ -75,57 +75,13 @@
         text-align: right;
       }
 
-      /* Theme button + tag */
-      #theme-btn {
-        width: 100%;
+      #theme-inline {
         background: white;
-        color: #374151;
         border: 1px solid #6ee7b7;
-        border-radius: 4px;
-        padding: 0.35rem 0.6rem;
-        font-size: 0.875rem;
-        text-align: left;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-      #theme-btn:hover { background: #f0fdf4; }
-      #theme-btn-arrow { color: #6b7280; font-size: 0.7rem; }
-
-      #active-theme-tag {
-        display: none;
-        font-size: 0.78rem;
-        background: #dbeafe;
-        color: #1e3a5f;
-        border-radius: 12px;
-        padding: 2px 10px;
-        align-self: flex-start;
-        margin-top: 2px;
+        border-radius: 6px;
+        padding: 0.6rem;
       }
 
-      /* Theme dialog */
-      #theme-dialog {
-        border: none;
-        border-radius: 8px;
-        padding: 1.25rem;
-        width: 300px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-        font-family: Roboto, sans-serif;
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        margin: 0;
-      }
-      #theme-dialog::backdrop {
-        background: rgba(0,0,0,0.35);
-      }
-      #theme-dialog h4 {
-        margin: 0 0 0.75rem;
-        font-size: 1rem;
-        color: #1e3a5f;
-      }
       .theme-chips {
         display: flex;
         flex-wrap: wrap;
@@ -147,7 +103,8 @@
         color: white;
         border-color: #3B82F6;
       }
-      #theme-dialog label {
+
+      #theme-inline label {
         font-size: 0.8rem;
         color: #6b7280;
         display: block;
@@ -162,22 +119,6 @@
         margin-bottom: 0.75rem;
         box-sizing: border-box;
       }
-      .theme-dialog-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.5rem;
-      }
-      #theme-cancel-btn {
-        background: #e5e7eb;
-        color: #374151;
-        padding: 0.35rem 0.9rem;
-        font-size: 0.85rem;
-      }
-      #theme-confirm-btn {
-        background: #3B82F6;
-        padding: 0.35rem 0.9rem;
-        font-size: 0.85rem;
-      }
 
       /* Override send button color for system 2 */
       #send-btn {
@@ -185,6 +126,49 @@
       }
       #send-btn:hover {
         background-color: #15803d;
+      }
+
+      #messages {
+        background: #f4f7fb;
+        padding: 1.25rem;
+      }
+
+      .message-wrapper {
+        margin-bottom: 0.25rem;
+      }
+
+      .bot-message {
+        max-width: min(88%, 760px);
+        background: #ffffff;
+        border: 1px solid #dbe4f0;
+        box-shadow: 0 8px 24px rgba(30, 58, 95, 0.08);
+        border-bottom-left-radius: 8px;
+        padding: 1rem 1.2rem;
+        line-height: 1.8;
+        font-size: 1rem;
+        color: #1f2937;
+      }
+
+      .bot-message h1,
+      .bot-message h2,
+      .bot-message h3 {
+        color: #0f172a;
+        line-height: 1.25;
+        margin: 0 0 0.85rem;
+      }
+
+      .bot-message h1:first-child,
+      .bot-message h2:first-child,
+      .bot-message h3:first-child {
+        margin-top: 0;
+      }
+
+      .bot-message p {
+        margin: 0 0 0.95rem;
+      }
+
+      .bot-message p:last-child {
+        margin-bottom: 0;
       }
     </style>
   </head>
@@ -221,34 +205,34 @@
 
           <div class="setting-row">
             <label>Theme</label>
-            <button type="button" id="theme-btn">
-              <span id="theme-btn-text">Choose themes...</span>
-              <span id="theme-btn-arrow">▼</span>
-            </button>
-            <span id="active-theme-tag"></span>
+            <div id="theme-inline">
+              <div class="theme-chips">
+                <button type="button" class="theme-chip" data-theme="princess">Princess</button>
+                <button type="button" class="theme-chip" data-theme="dragon">Dragon</button>
+                <button type="button" class="theme-chip" data-theme="adventure">Adventure</button>
+                <button type="button" class="theme-chip" data-theme="space">Space</button>
+                <button type="button" class="theme-chip" data-theme="mystery">Mystery</button>
+                <button type="button" class="theme-chip" data-theme="fantasy">Fantasy</button>
+                <button type="button" class="theme-chip" data-theme="friendship">Friendship</button>
+                <button type="button" class="theme-chip" data-theme="magic">Magic</button>
+                <button type="button" class="theme-chip" data-theme="pirates">Pirates</button>
+                <button type="button" class="theme-chip" data-theme="dinosaurs">Dinosaurs</button>
+                <button type="button" class="theme-chip" data-theme="superheroes">Superheroes</button>
+                <button type="button" class="theme-chip" data-theme="animals">Animals</button>
+                <button type="button" class="theme-chip" data-theme="underwater">Underwater</button>
+                <button type="button" class="theme-chip" data-theme="fairy tale">Fairy Tale</button>
+                <button type="button" class="theme-chip" data-theme="robots">Robots</button>
+                <button type="button" class="theme-chip" data-theme="school">School</button>
+                <button type="button" class="theme-chip" data-theme="jungle">Jungle</button>
+                <button type="button" class="theme-chip" data-theme="castle">Castle</button>
+                <button type="button" class="theme-chip" data-theme="detective">Detective</button>
+                <button type="button" class="theme-chip" data-theme="time travel">Time Travel</button>
+              </div>
+              <label for="theme-custom-input">Custom (comma-separated)</label>
+              <input type="text" id="theme-custom-input" placeholder="e.g. robot, time travel" />
+            </div>
           </div>
         </section>
-
-        <!-- Theme picker dialog -->
-        <dialog id="theme-dialog">
-          <h4>Choose Themes</h4>
-          <div class="theme-chips">
-            <button type="button" class="theme-chip" data-theme="princess">Princess</button>
-            <button type="button" class="theme-chip" data-theme="dragon">Dragon</button>
-            <button type="button" class="theme-chip" data-theme="adventure">Adventure</button>
-            <button type="button" class="theme-chip" data-theme="space">Space</button>
-            <button type="button" class="theme-chip" data-theme="mystery">Mystery</button>
-            <button type="button" class="theme-chip" data-theme="fantasy">Fantasy</button>
-            <button type="button" class="theme-chip" data-theme="friendship">Friendship</button>
-            <button type="button" class="theme-chip" data-theme="magic">Magic</button>
-          </div>
-          <label for="theme-custom-input">Custom (comma-separated)</label>
-          <input type="text" id="theme-custom-input" placeholder="e.g. robot, time travel" />
-          <div class="theme-dialog-actions">
-            <button type="button" id="theme-cancel-btn">Cancel</button>
-            <button type="button" id="theme-confirm-btn">OK</button>
-          </div>
-        </dialog>
 
         <!-- Document Upload -->
         <form id="upload-form">
@@ -320,19 +304,20 @@
         sentenceLabel.textContent = sentenceLengthLabel(parseInt(sentenceSlider.value));
       });
 
-      // Theme dialog
-      const themeDialog = document.getElementById('theme-dialog');
-      const themeBtnEl = document.getElementById('theme-btn');
-      const themeBtnText = document.getElementById('theme-btn-text');
-      const activeThemeTag = document.getElementById('active-theme-tag');
+      // Theme inline picker
       const themeCustomInput = document.getElementById('theme-custom-input');
-      const themeConfirmBtn = document.getElementById('theme-confirm-btn');
-      const themeCancelBtn = document.getElementById('theme-cancel-btn');
       const themeChips = document.querySelectorAll('.theme-chip');
 
       let selectedThemes = new Set();
 
-      themeBtnEl.addEventListener('click', () => themeDialog.showModal());
+      function getAllThemes() {
+        const customVal = themeCustomInput.value.trim();
+        const allThemes = [...selectedThemes];
+        if (customVal) {
+          allThemes.push(...customVal.split(',').map(s => s.trim()).filter(Boolean));
+        }
+        return allThemes;
+      }
 
       themeChips.forEach(chip => {
         chip.addEventListener('click', () => {
@@ -347,33 +332,11 @@
         });
       });
 
-      themeConfirmBtn.addEventListener('click', () => {
-        const customVal = themeCustomInput.value.trim();
-        const allThemes = [...selectedThemes];
-        if (customVal) allThemes.push(...customVal.split(',').map(s => s.trim()).filter(Boolean));
-
-        if (allThemes.length > 0) {
-          const label = allThemes.join(', ');
-          themeBtnText.textContent = label;
-          activeThemeTag.textContent = label;
-          activeThemeTag.style.display = 'inline-block';
-        } else {
-          themeBtnText.textContent = 'Choose themes...';
-          activeThemeTag.style.display = 'none';
-        }
-        themeDialog.close();
-      });
-
-      themeCancelBtn.addEventListener('click', () => themeDialog.close());
-
       // Expose getter for script2.js
       window.getStorySettings = function () {
         const readVal = parseInt(readSlider.value);
         const sentenceVal = parseInt(sentenceSlider.value);
-
-        const customVal = themeCustomInput.value.trim();
-        const allThemes = [...selectedThemes];
-        if (customVal) allThemes.push(...customVal.split(',').map(s => s.trim()).filter(Boolean));
+        const allThemes = getAllThemes();
         const themeVal = allThemes.length > 0 ? allThemes.join(', ') : '';
 
         return {

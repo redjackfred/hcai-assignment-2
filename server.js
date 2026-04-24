@@ -47,7 +47,11 @@ function buildSystemPrompt({ systemID, storySettings, contextText }) {
 ${readLevel}
 ${sentenceLength}
 ${themeLine}
-Format your response using Markdown. If reference materials are provided, incorporate relevant details naturally into the story.
+Make the story complete, with a clear ending instead of stopping mid-scene.
+Format your response using Markdown.
+Start with a short story title as a Markdown heading.
+Use short paragraphs with clear spacing between them, and avoid large walls of text.
+If reference materials are provided, incorporate relevant details naturally into the story.
 
 ### Reference Materials ###
 ${contextText}`;
@@ -102,6 +106,7 @@ app.post('/chat', async (req, res) => {
       : "No relevant reference materials found.";
 
     const systemPrompt = buildSystemPrompt({ systemID, storySettings, contextText });
+    const maxTokens = Number(systemID) % 2 === 0 ? 700 : 300;
 
     const priorMessages = Array.isArray(conversationHistory) ? conversationHistory : [];
     const response = await openai.chat.completions.create({
@@ -111,7 +116,7 @@ app.post('/chat', async (req, res) => {
         ...priorMessages,
         { role: 'user', content: message }
       ],
-      max_tokens: 300,
+      max_tokens: maxTokens,
     });
 
     const botResponse = response.choices[0].message.content.trim();

@@ -80,10 +80,21 @@
       <form id="participant-form" class="participant-section">
         <label for="participant-id-input">Participant ID</label>
         <input type="text" id="participant-id-input" placeholder="Enter your Participant ID" required />
-        <button type="submit">Start Chatting</button>
+        <button type="submit">Continue to Study Workflow</button>
       </form>
     </div>
     <script>
+      function getSystemID(participantID) {
+        const digitsOnly = participantID.replace(/\D/g, '');
+        const numericID = Number.parseInt(digitsOnly, 10);
+
+        if (Number.isNaN(numericID)) {
+          return 1;
+        }
+
+        return numericID % 2 === 1 ? 1 : 2;
+      }
+
       document.getElementById('participant-form').addEventListener('submit', function(event) {
         event.preventDefault();
         const participantID = document.getElementById('participant-id-input').value.trim();
@@ -92,9 +103,9 @@
           return;
         }
         localStorage.setItem('participantID', participantID);
-        const systemID = parseInt(participantID) % 2 === 1 ? 1 : 2;
-        const route = systemID === 2 ? '/chat2' : '/chat';
-        window.location.href = `${route}?participantID=${encodeURIComponent(participantID)}&systemID=${systemID}`;
+        const systemID = getSystemID(participantID);
+        localStorage.setItem('systemID', systemID);
+        window.location.href = `/study-workflow.html?participantID=${encodeURIComponent(participantID)}&systemID=${systemID}`;
       });
     </script>
   </body>

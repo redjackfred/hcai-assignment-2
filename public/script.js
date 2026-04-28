@@ -205,11 +205,15 @@ async function loadConversationHistory() {
     }
     const recent = allHistory.slice(-HISTORY_LIMIT);
     console.log(`[history] loading last ${recent.length} interaction(s)`);
-    recent.forEach(({ userInput, botResponse }) => {
-      addMessage(userInput, "user");
-      addMessage(botResponse, "bot");
+    recent.forEach(({ _id, userInput, botResponse, userRating, userAction }) => {
+      const userWrapper = addMessage(userInput, "user");
+      const botWrapper = addMessage(botResponse, "bot");
       conversationHistory.push({ role: "user", content: userInput });
       conversationHistory.push({ role: "assistant", content: botResponse });
+      const isStory = botResponse.trimStart().startsWith('#');
+      if (isStory && _id) {
+        addStoryWidgets(_id, userWrapper, botWrapper, userInput, { rating: userRating, action: userAction });
+      }
     });
   } catch (err) {
     console.error("[history] Failed to load chat history:", err);
@@ -218,8 +222,9 @@ async function loadConversationHistory() {
 
 loadConversationHistory();
 
-function addStoryWidgets(interactionId, userWrapper, botWrapper, originalPrompt) {
-  storyRoundCount++;
+function addStoryWidgets(interactionId, userWrapper, botWrapper, originalPrompt, initialState = {}) {
+  const isRestored = Object.keys(initialState).length > 0;
+  if (!isRestored) storyRoundCount++;
   const roundAtGeneration = storyRoundCount;
   const widgetWrapper = document.createElement("div");
   widgetWrapper.className = "story-widgets";
@@ -295,10 +300,8 @@ function addStoryWidgets(interactionId, userWrapper, botWrapper, originalPrompt)
   regenerateBtn.className = "story-action-btn regenerate-btn";
   regenerateBtn.textContent = "Regenerate";
 
-  function disableAllActions() {
-    acceptBtn.disabled = true;
-    discardBtn.disabled = true;
-    regenerateBtn.disabled = true;
+  function hideAllActions() {
+    actionBar.remove();
   }
 
   function postAction(action, extraData = {}) {
@@ -313,8 +316,7 @@ function addStoryWidgets(interactionId, userWrapper, botWrapper, originalPrompt)
   acceptBtn.addEventListener("click", () => {
     postAction("accept", { roundsToAccept: roundAtGeneration });
     storyRoundCount = 0;
-    disableAllActions();
-    acceptBtn.textContent = "Accepted";
+    hideAllActions();
     botWrapper.style.flexDirection = "column";
     botWrapper.style.alignItems = "flex-start";
     const badge = document.createElement("span");
@@ -342,7 +344,13 @@ function addStoryWidgets(interactionId, userWrapper, botWrapper, originalPrompt)
     addMessage("Please refine your story description and click Send.", "system");
     inputField.value = originalPrompt;
     inputField.focus();
-    disableAllActions();
+    hideAllActions();
+    botWrapper.style.flexDirection = "column";
+    botWrapper.style.alignItems = "flex-start";
+    const badge = document.createElement("span");
+    badge.className = "story-badge regenerate-badge";
+    badge.textContent = "↺ Regenerating";
+    botWrapper.appendChild(badge);
   });
 
   actionBar.appendChild(acceptBtn);
@@ -352,4 +360,39 @@ function addStoryWidgets(interactionId, userWrapper, botWrapper, originalPrompt)
 
   messagesContainer.appendChild(widgetWrapper);
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+  // Restore persisted state when loading from history
+  if (initialState.rating) {
+    currentRating = initialState.rating;
+    hasRated = true;
+    starButtons.forEach((s, idx) => { s.textContent = idx < initialState.rating ? "★" : "☆"; s.disabled = true; });
+    ratingLabel.textContent = "Rated:";
+  }
+  if (initialState.action === "accept") {
+    hideAllActions();
+    botWrapper.style.flexDirection = "column";
+    botWrapper.style.alignItems = "flex-start";
+    const badge = document.createElement("span");
+    badge.className = "story-badge accepted-badge";
+    badge.textContent = "✓ Accepted";
+    botWrapper.appendChild(badge);
+  } else if (initialState.action === "discard") {
+    userWrapper.style.opacity = "0.35";
+    botWrapper.style.opacity = "0.35";
+    botWrapper.style.flexDirection = "column";
+    botWrapper.style.alignItems = "flex-start";
+    const badge = document.createElement("span");
+    badge.className = "story-badge discarded-badge";
+    badge.textContent = "✗ Discarded";
+    botWrapper.appendChild(badge);
+    widgetWrapper.remove();
+  } else if (initialState.action === "regenerate") {
+    hideAllActions();
+    botWrapper.style.flexDirection = "column";
+    botWrapper.style.alignItems = "flex-start";
+    const badge = document.createElement("span");
+    badge.className = "story-badge regenerate-badge";
+    badge.textContent = "↺ Regenerating";
+    botWrapper.appendChild(badge);
+  }
 }

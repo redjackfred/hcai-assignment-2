@@ -15,6 +15,7 @@ const systemID = _urlParams.get("systemID") || "2";
 
 const HISTORY_LIMIT = 5;
 const conversationHistory = [];
+let storyRoundCount = 0;
 
 function addMessage(text, type = "user") {
   const wrapper = document.createElement("div");
@@ -32,6 +33,7 @@ function addMessage(text, type = "user") {
   messagesContainer.appendChild(wrapper);
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
   return wrapper;
+  return wrapper;
 }
 
 function sendMessage() {
@@ -43,7 +45,7 @@ function sendMessage() {
     return;
   }
 
-  addMessage(userMessage, "user");
+  const userWrapper = addMessage(userMessage, "user");
   inputField.value = "";
 
   const recentHistory = conversationHistory.slice(-HISTORY_LIMIT);
@@ -340,6 +342,181 @@ async function loadConversationHistory() {
     }
   } catch (err) {
     console.error("[history] Failed to load chat history:", err);
+  }
+}
+
+function addStoryWidgets(interactionId, userWrapper, botWrapper, originalPrompt, initialState = {}) {
+  const isRestored = Object.keys(initialState).length > 0;
+  if (!isRestored) storyRoundCount++;
+  const roundAtGeneration = storyRoundCount;
+  const widgetWrapper = document.createElement("div");
+  widgetWrapper.className = "story-widgets";
+
+  // Star rating
+  const ratingSection = document.createElement("div");
+  ratingSection.className = "story-rating";
+
+  const ratingLabel = document.createElement("span");
+  ratingLabel.className = "rating-label";
+  ratingLabel.textContent = "Rate this story:";
+  ratingSection.appendChild(ratingLabel);
+
+  const starsContainer = document.createElement("div");
+  starsContainer.className = "stars-container";
+
+  let currentRating = 0;
+  let hasRated = false;
+  const starButtons = [];
+
+  for (let i = 1; i <= 5; i++) {
+    const star = document.createElement("button");
+    star.type = "button";
+    star.className = "star-btn";
+    star.textContent = "☆";
+    star.dataset.value = i;
+
+    star.addEventListener("mouseenter", () => {
+      if (hasRated) return;
+      starButtons.forEach((s, idx) => { s.textContent = idx < i ? "★" : "☆"; });
+    });
+    star.addEventListener("mouseleave", () => {
+      if (hasRated) return;
+      starButtons.forEach((s, idx) => { s.textContent = idx < currentRating ? "★" : "☆"; });
+    });
+    star.addEventListener("click", () => {
+      if (hasRated) return;
+      currentRating = i;
+      hasRated = true;
+      starButtons.forEach((s, idx) => { s.textContent = idx < i ? "★" : "☆"; s.disabled = true; });
+      ratingLabel.textContent = "Rated:";
+      fetch("/rate-story", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interactionId, rating: i }),
+      }).catch((err) => console.error("Failed to save rating:", err));
+      logEvent("click", "star-rating");
+    });
+
+    starButtons.push(star);
+    starsContainer.appendChild(star);
+  }
+
+  ratingSection.appendChild(starsContainer);
+  widgetWrapper.appendChild(ratingSection);
+
+  // Action bar
+  const actionBar = document.createElement("div");
+  actionBar.className = "story-actions";
+
+  const acceptBtn = document.createElement("button");
+  acceptBtn.type = "button";
+  acceptBtn.className = "story-action-btn accept-btn";
+  acceptBtn.textContent = "Accept";
+
+  const discardBtn = document.createElement("button");
+  discardBtn.type = "button";
+  discardBtn.className = "story-action-btn discard-btn";
+  discardBtn.textContent = "Discard";
+
+  const regenerateBtn = document.createElement("button");
+  regenerateBtn.type = "button";
+  regenerateBtn.className = "story-action-btn regenerate-btn";
+  regenerateBtn.textContent = "Regenerate";
+
+  function hideAllActions() {
+    actionBar.remove();
+  }
+
+  function postAction(action, extraData = {}) {
+    fetch("/story-action", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ interactionId, action, participantID, systemID, ...extraData }),
+    }).catch((err) => console.error("Failed to save story action:", err));
+    logEvent("click", "story-action-" + action);
+  }
+
+  acceptBtn.addEventListener("click", () => {
+    postAction("accept", { roundsToAccept: roundAtGeneration });
+    storyRoundCount = 0;
+    hideAllActions();
+    botWrapper.style.flexDirection = "column";
+    botWrapper.style.alignItems = "flex-start";
+    const badge = document.createElement("span");
+    badge.className = "story-badge accepted-badge";
+    badge.textContent = "✓ Accepted";
+    botWrapper.appendChild(badge);
+  });
+
+  discardBtn.addEventListener("click", () => {
+    postAction("discard");
+    userWrapper.style.opacity = "0.35";
+    botWrapper.style.opacity = "0.35";
+    botWrapper.style.flexDirection = "column";
+    botWrapper.style.alignItems = "flex-start";
+    const badge = document.createElement("span");
+    badge.className = "story-badge discarded-badge";
+    badge.textContent = "✗ Discarded";
+    botWrapper.appendChild(badge);
+    widgetWrapper.remove();
+    inputField.value = "";
+  });
+
+  regenerateBtn.addEventListener("click", () => {
+    postAction("regenerate");
+    addMessage("Please refine your story description and click Send.", "system");
+    inputField.value = originalPrompt;
+    inputField.focus();
+    hideAllActions();
+    botWrapper.style.flexDirection = "column";
+    botWrapper.style.alignItems = "flex-start";
+    const badge = document.createElement("span");
+    badge.className = "story-badge regenerate-badge";
+    badge.textContent = "↺ Regenerating";
+    botWrapper.appendChild(badge);
+  });
+
+  actionBar.appendChild(acceptBtn);
+  actionBar.appendChild(discardBtn);
+  actionBar.appendChild(regenerateBtn);
+  widgetWrapper.appendChild(actionBar);
+
+  messagesContainer.appendChild(widgetWrapper);
+  messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+  // Restore persisted state when loading from history
+  if (initialState.rating) {
+    currentRating = initialState.rating;
+    hasRated = true;
+    starButtons.forEach((s, idx) => { s.textContent = idx < initialState.rating ? "★" : "☆"; s.disabled = true; });
+    ratingLabel.textContent = "Rated:";
+  }
+  if (initialState.action === "accept") {
+    hideAllActions();
+    botWrapper.style.flexDirection = "column";
+    botWrapper.style.alignItems = "flex-start";
+    const badge = document.createElement("span");
+    badge.className = "story-badge accepted-badge";
+    badge.textContent = "✓ Accepted";
+    botWrapper.appendChild(badge);
+  } else if (initialState.action === "discard") {
+    userWrapper.style.opacity = "0.35";
+    botWrapper.style.opacity = "0.35";
+    botWrapper.style.flexDirection = "column";
+    botWrapper.style.alignItems = "flex-start";
+    const badge = document.createElement("span");
+    badge.className = "story-badge discarded-badge";
+    badge.textContent = "✗ Discarded";
+    botWrapper.appendChild(badge);
+    widgetWrapper.remove();
+  } else if (initialState.action === "regenerate") {
+    hideAllActions();
+    botWrapper.style.flexDirection = "column";
+    botWrapper.style.alignItems = "flex-start";
+    const badge = document.createElement("span");
+    badge.className = "story-badge regenerate-badge";
+    badge.textContent = "↺ Regenerating";
+    botWrapper.appendChild(badge);
   }
 }
 

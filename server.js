@@ -27,7 +27,7 @@ const openai = new OpenAI({
 
 function buildSystemPrompt({ systemID, storySettings, contextText }) {
   console.log('[buildSystemPrompt] systemID=%s storySettings=%s', systemID, JSON.stringify(storySettings));
-  if (storySettings) {
+  if (Number(systemID) % 2 === 0 && storySettings) {
     const selectedReadLevel = storySettings.readLevel || 'medium';
     const readLevelInstructions = {
       easy:   'Use simple vocabulary and short explanations suitable for young children (grades 1–3). Avoid complex words.',
@@ -35,9 +35,9 @@ function buildSystemPrompt({ systemID, storySettings, contextText }) {
       hard:   'Use sophisticated vocabulary, varied sentence structures, and rich literary language suitable for advanced readers.',
     };
     const storyLengthConfig = {
-      easy: { sentenceMultiplier: 6, minWords: 90, maxWords: 180, paragraphs: 3 },
-      medium: { sentenceMultiplier: 8, minWords: 160, maxWords: 300, paragraphs: 4 },
-      hard: { sentenceMultiplier: 10, minWords: 260, maxWords: 480, paragraphs: 5 },
+      easy: { sentenceMultiplier: 6, minWords: 90, maxWords: 180 },
+      medium: { sentenceMultiplier: 8, minWords: 160, maxWords: 300},
+      hard: { sentenceMultiplier: 10, minWords: 260, maxWords: 480},
     };
     const readLevel = readLevelInstructions[selectedReadLevel] || readLevelInstructions.medium;
     const wordLimit = Number(storySettings.sentenceLength) || 20;
@@ -49,8 +49,8 @@ function buildSystemPrompt({ systemID, storySettings, contextText }) {
     );
     const storyLengthInstruction = `Because the read level is "${selectedReadLevel}", keep the full story around ${targetWordCount} words total and organize it into about ${lengthConfig.paragraphs} short paragraphs. Lower read levels must produce shorter stories than higher read levels.`;
     const themeLine = storySettings.theme
-      ? `The selected theme or themes are mandatory and must appear clearly in the story: ${storySettings.theme}. Make at least one selected theme central to the main character, setting, or plot. Do not replace the selected theme with an unrelated one.`
-      : 'If no theme is selected, choose a child-friendly imaginative theme that fits the request.';
+      ? `Weave the following themes or elements naturally into the story: ${storySettings.theme}.`
+      : '';
 
     console.log('[buildSystemPrompt] readLevel ->', selectedReadLevel, '|', readLevel);
     console.log('[buildSystemPrompt] sentenceLength -> max %d words', wordLimit);
@@ -62,7 +62,6 @@ ${readLevel}
 ${sentenceLength}
 ${storyLengthInstruction}
 ${themeLine}
-Always prioritize the current story request and the currently selected themes over any earlier conversation context.
 Make the story complete, with a clear ending instead of stopping mid-scene.
 Format your response using Markdown.
 Start with a short story title as a Markdown heading.
@@ -82,24 +81,6 @@ Format your response using Markdown (use headings, bullet points, bold, or code 
 ${contextText}`;
 }
 
-function buildUserPrompt({ message, storySettings }) {
-  if (!storySettings) {
-    return message;
-  }
-
-  const promptSections = [
-    `Story request: ${message}`,
-    `Required read level: ${storySettings.readLevel || 'medium'}`,
-    `Maximum words per sentence: ${Number(storySettings.sentenceLength) || 20}`,
-  ];
-
-  if (storySettings.theme) {
-    promptSections.push(`Required themes: ${storySettings.theme}. These themes must appear explicitly in the story.`);
-  }
-
-  return promptSections.join('\n');
-}
-
 // Serves static files from the "public" folder
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -113,6 +94,10 @@ app.get('/', (_req, res) => {
 
 app.get('/chat', (_req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'chat.html'));
+});
+
+app.get('/chat2', (_req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'chat2.html'));
 });
 
 app.post('/redirect-to-survey', (req, res) => {
@@ -155,10 +140,9 @@ app.post('/chat', async (req, res) => {
       hard: 760,
     };
     const storyReadLevel = storySettings?.readLevel || 'medium';
-    const maxTokens = storySettings
+    const maxTokens = Number(systemID) % 2 === 0
       ? (storyTokenBudgets[storyReadLevel] || storyTokenBudgets.medium)
       : 300;
-    const currentUserPrompt = buildUserPrompt({ message, storySettings });
 
     const priorMessages = Array.isArray(conversationHistory) ? conversationHistory : [];
     const response = await openai.chat.completions.create({
@@ -166,7 +150,7 @@ app.post('/chat', async (req, res) => {
       messages: [
         { role: 'system', content: systemPrompt },
         ...priorMessages,
-        { role: 'user', content: currentUserPrompt }
+        { role: 'user', content: message }
       ],
       max_tokens: maxTokens,
     });

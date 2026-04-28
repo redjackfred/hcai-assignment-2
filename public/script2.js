@@ -4,13 +4,15 @@ const messagesContainer = document.getElementById("messages");
 const retrievalSelect = document.getElementById("retrieval-select");
 const uploadBtn = document.getElementById("upload-btn");
 const fileInput = document.getElementById("file-input");
+const readLevelSlider = document.getElementById("read-level-slider");
+const sentenceLengthSlider = document.getElementById("sentence-length-slider");
+const themeCustomInputField = document.getElementById("theme-custom-input");
+const themeChipButtons = document.querySelectorAll(".theme-chip");
 
-// Participant ID — prefer URL query string, fall back to localStorage
 const _urlParams = new URLSearchParams(window.location.search);
 const participantID = _urlParams.get("participantID") || localStorage.getItem("participantID") || "anonymous";
-const systemID = _urlParams.get("systemID") || null;
+const systemID = _urlParams.get("systemID") || "2";
 
-// In-memory conversation history for multi-turn context
 const HISTORY_LIMIT = 5;
 const conversationHistory = [];
 
@@ -44,18 +46,22 @@ function sendMessage() {
   inputField.value = "";
 
   const recentHistory = conversationHistory.slice(-HISTORY_LIMIT);
+  const storySettings = window.getStorySettings ? window.getStorySettings() : null;
 
   fetch("/chat", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ message: userMessage, retrievalMethod, participantID, systemID, conversationHistory: recentHistory }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: userMessage,
+      retrievalMethod,
+      participantID,
+      systemID,
+      conversationHistory: recentHistory,
+      storySettings
+    }),
   })
     .then((res) => {
-      if (!res.ok) {
-        throw new Error(`Request failed with status ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`Request failed with status ${res.status}`);
       return res.json();
     })
     .then((data) => {
@@ -71,46 +77,27 @@ function sendMessage() {
 }
 
 loadDocuments();
-
 sendBtn.addEventListener("click", sendMessage);
-
 inputField.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") {
-    sendMessage();
-  }
+  if (event.key === "Enter") sendMessage();
 });
 
 retrievalSelect.addEventListener("change", (event) => {
-  const method = event.target.value;
-  addMessage(`System: Retrieval method set to ${method}`, "system");
-  console.log(`Retrieval method: ${method}`);
+  addMessage(`System: Retrieval method set to ${event.target.value}`, "system");
 });
 
 uploadBtn.addEventListener("click", async (event) => {
   event.preventDefault();
   const file = fileInput.files?.[0];
-
-  if (!file) {
-    alert("Choose a file first.");
-    return;
-  }
-
-  console.log(`Selected file: ${file.name}`);
+  if (!file) { alert("Choose a file first."); return; }
 
   const formData = new FormData();
   formData.append("document", file);
 
-  const response = await fetch("/upload-document", {
-    method: "POST",
-    body: formData
-  });
-
+  const response = await fetch("/upload-document", { method: "POST", body: formData });
   const data = await response.json();
 
-  if (!response.ok) {
-    alert(`Upload failed: ${data.error || "Unknown error"}`);
-    return;
-  }
+  if (!response.ok) { alert(`Upload failed: ${data.error || "Unknown error"}`); return; }
 
   alert(`Uploaded "${data.filename}" (${data.chunkCount} chunks)`);
   await loadDocuments();
@@ -119,19 +106,15 @@ uploadBtn.addEventListener("click", async (event) => {
 async function loadDocuments() {
   const response = await fetch("/documents");
   const docs = await response.json();
-
   const documentsList = document.getElementById("uploaded-docs");
   if (!documentsList) return;
   documentsList.innerHTML = "";
-
   docs.forEach(doc => {
-    const listItem = document.createElement("li");
-    listItem.textContent = `${doc.filename} - ${doc.processingStatus}`;
-    documentsList.appendChild(listItem);
+    const li = document.createElement("li");
+    li.textContent = `${doc.filename} - ${doc.processingStatus}`;
+    documentsList.appendChild(li);
   });
-
 }
-
 
 function displayEvidence(retrievedDocuments, confidenceMetrics) {
   const confidenceDisplay = document.getElementById("confidence-display");
@@ -160,7 +143,6 @@ function displayEvidence(retrievedDocuments, confidenceMetrics) {
   }
 }
 
-// Event logging
 function logEvent(eventType, elementName) {
   fetch("/log-event", {
     method: "POST",
@@ -174,32 +156,37 @@ const trackedElements = [
   { el: inputField, name: "user-input" },
   { el: retrievalSelect, name: "retrieval-select" },
   { el: uploadBtn, name: "upload-btn" },
+  { el: readLevelSlider, name: "read-level-slider" },
+  { el: sentenceLengthSlider, name: "sentence-length-slider" },
+  { el: themeCustomInputField, name: "theme-custom-input" },
 ];
-
 trackedElements.forEach(({ el, name }) => {
   el.addEventListener("click", () => logEvent("click", name));
   el.addEventListener("mouseenter", () => logEvent("hover", name));
   el.addEventListener("focus", () => logEvent("focus", name));
 });
 
+themeChipButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    logEvent("click", "theme-button");
+  });
+});
+
+themeCustomInputField.addEventListener("change", () => {
+  logEvent("change", "theme-custom-input");
+});
+
 async function loadConversationHistory() {
-  console.log("[history] fetching history for participantID:", participantID);
   try {
     const res = await fetch("/history", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ participantID }),
     });
-    console.log("[history] response status:", res.status);
     const data = await res.json();
-    console.log("[history] data received:", data);
     const allHistory = Array.isArray(data) ? data : data.history;
-    if (!allHistory || allHistory.length === 0) {
-      console.log("[history] no history found for this participant");
-      return;
-    }
+    if (!allHistory || allHistory.length === 0) return;
     const recent = allHistory.slice(-HISTORY_LIMIT);
-    console.log(`[history] loading last ${recent.length} interaction(s)`);
     recent.forEach(({ userInput, botResponse }) => {
       addMessage(userInput, "user");
       addMessage(botResponse, "bot");

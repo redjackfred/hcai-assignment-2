@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Story Teller — System 2</title>
+    <meta name="description" content="AI Story Teller chatbot interface." />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100;400;700&display=swap" rel="stylesheet">
+    <style>
+      #system-banner {
+        background: #d1fae5;
+        color: #065f46;
+        text-align: center;
+        padding: 6px;
+        font-size: 0.85rem;
+        font-family: Roboto, sans-serif;
+      }
+
+      /* Story Settings section */
+      #story-settings {
+        border: 1px solid #6ee7b7;
+        background-color: #f0fdf4;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 0.75rem;
+        border-radius: 4px;
+      }
+
+      #story-settings h3 {
+        color: #065f46;
+        margin-bottom: 0.25rem;
+      }
+
+      .setting-row {
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+
+      .setting-row > label {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #374151;
+      }
+
+      .slider-row {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .slider-label {
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #1e3a5f;
+        min-width: 12px;
+        text-align: center;
+      }
+
+      .slider-row input[type="range"] {
+        flex: 1;
+        accent-color: #3B82F6;
+        cursor: pointer;
+        height: 4px;
+      }
+
+      .slider-value {
+        font-size: 0.75rem;
+        color: #6b7280;
+        min-width: 48px;
+        text-align: right;
+      }
+
+      #theme-inline {
+        background: white;
+        border: 1px solid #6ee7b7;
+        border-radius: 6px;
+        padding: 0.6rem;
+      }
+
+      .theme-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        margin-bottom: 0.75rem;
+      }
+      .theme-chip {
+        padding: 0.3rem 0.75rem;
+        border-radius: 16px;
+        border: 1.5px solid #93c5fd;
+        background: white;
+        color: #1e3a5f;
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+      }
+      .theme-chip.selected {
+        background: #3B82F6;
+        color: white;
+        border-color: #3B82F6;
+      }
+
+      #theme-inline label {
+        font-size: 0.8rem;
+        color: #6b7280;
+        display: block;
+        margin-bottom: 0.3rem;
+      }
+      #theme-custom-input {
+        width: 100%;
+        padding: 0.35rem 0.5rem;
+        border: 1px solid #d1d5db;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        margin-bottom: 0.75rem;
+        box-sizing: border-box;
+      }
+
+      /* Override send button color for system 2 */
+      #send-btn {
+        background-color: #16a34a;
+      }
+      #send-btn:hover {
+        background-color: #15803d;
+      }
+
+      #messages {
+        background: #f4f7fb;
+        padding: 1.25rem;
+      }
+
+      .message-wrapper {
+        margin-bottom: 0.25rem;
+      }
+
+      .bot-message {
+        max-width: min(88%, 760px);
+        background: #ffffff;
+        border: 1px solid #dbe4f0;
+        box-shadow: 0 8px 24px rgba(30, 58, 95, 0.08);
+        border-bottom-left-radius: 8px;
+        padding: 1rem 1.2rem;
+        line-height: 1.8;
+        font-size: 1rem;
+        color: #1f2937;
+      }
+
+      .bot-message h1,
+      .bot-message h2,
+      .bot-message h3 {
+        color: #0f172a;
+        line-height: 1.25;
+        margin: 0 0 0.85rem;
+      }
+
+      .bot-message h1:first-child,
+      .bot-message h2:first-child,
+      .bot-message h3:first-child {
+        margin-top: 0;
+      }
+
+      .bot-message p {
+        margin: 0 0 0.95rem;
+      }
+
+      .bot-message p:last-child {
+        margin-bottom: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="system-banner">AI Story Teller — System 2</div>
+    <main>
+      <div id="doc-panel" class="container">
+        <h2>Settings</h2>
+        <hr/>
+
+        <!-- Story Settings -->
+        <section id="story-settings">
+          <h3>Story Settings</h3>
+
+          <div class="setting-row">
+            <label for="read-level-slider">Read Level</label>
+            <div class="slider-row">
+              <span class="slider-label">E</span>
+              <input type="range" id="read-level-slider" min="1" max="5" value="3" />
+              <span class="slider-label">H</span>
+            </div>
+            <span class="slider-value" id="read-level-label">Medium</span>
+          </div>
+
+          <div class="setting-row">
+            <label for="sentence-length-slider">Max Words / Sentence</label>
+            <div class="slider-row">
+              <span class="slider-label">5</span>
+              <input type="range" id="sentence-length-slider" min="5" max="40" step="5" value="20" />
+              <span class="slider-label">40</span>
+            </div>
+            <span class="slider-value" id="sentence-length-label">20 words</span>
+          </div>
+
+          <div class="setting-row">
+            <label>Theme</label>
+            <div id="theme-inline">
+              <div class="theme-chips">
+                <button type="button" class="theme-chip" data-theme="princess">Princess</button>
+                <button type="button" class="theme-chip" data-theme="dragon">Dragon</button>
+                <button type="button" class="theme-chip" data-theme="adventure">Adventure</button>
+                <button type="button" class="theme-chip" data-theme="space">Space</button>
+                <button type="button" class="theme-chip" data-theme="mystery">Mystery</button>
+                <button type="button" class="theme-chip" data-theme="fantasy">Fantasy</button>
+                <button type="button" class="theme-chip" data-theme="friendship">Friendship</button>
+                <button type="button" class="theme-chip" data-theme="magic">Magic</button>
+                <button type="button" class="theme-chip" data-theme="pirates">Pirates</button>
+                <button type="button" class="theme-chip" data-theme="dinosaurs">Dinosaurs</button>
+                <button type="button" class="theme-chip" data-theme="superheroes">Superheroes</button>
+                <button type="button" class="theme-chip" data-theme="animals">Animals</button>
+                <button type="button" class="theme-chip" data-theme="underwater">Underwater</button>
+                <button type="button" class="theme-chip" data-theme="fairy tale">Fairy Tale</button>
+                <button type="button" class="theme-chip" data-theme="robots">Robots</button>
+                <button type="button" class="theme-chip" data-theme="school">School</button>
+                <button type="button" class="theme-chip" data-theme="jungle">Jungle</button>
+                <button type="button" class="theme-chip" data-theme="castle">Castle</button>
+                <button type="button" class="theme-chip" data-theme="detective">Detective</button>
+                <button type="button" class="theme-chip" data-theme="time travel">Time Travel</button>
+              </div>
+              <label for="theme-custom-input">Custom (comma-separated)</label>
+              <input type="text" id="theme-custom-input" placeholder="e.g. robot, time travel" />
+            </div>
+          </div>
+        </section>
+
+        <!-- Document Upload -->
+        <form id="upload-form">
+          <h3>Upload Document</h3>
+          <input type="file" id="file-input" />
+          <button id="upload-btn">Upload</button>
+        </form>
+
+        <section id="documents-section">
+          <h3>Uploaded Documents</h3>
+          <ul id="uploaded-docs">No documents uploaded yet</ul>
+        </section>
+
+        <section id="retrieval-method">
+          <h3>Retrieval Method</h3>
+          <select id="retrieval-select">
+            <option value="semantic">Semantic (Embeddings)</option>
+            <option value="tfidf">TF-IDF (Keyword)</option>
+          </select>
+        </section>
+
+        <section id="evidence-section">
+          <h3>Retrieved Evidence</h3>
+          <p id="confidence-display">Confidence: —</p>
+          <ul id="evidence-list"></ul>
+        </section>
+      </div>
+
+      <div id="chat-container" class="container">
+        <h1>AI Story Teller</h1>
+        <hr/>
+        <div id="messages"></div>
+        <div id="input-area">
+          <input type="text" id="user-input" placeholder="Describe the story you want..." />
+          <button id="send-btn">Generate</button>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      // Inject systemID=2 into URL params
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        if (!params.has('systemID')) {
+          params.set('systemID', '2');
+          window.history.replaceState(null, '', window.location.pathname + '?' + params.toString());
+        }
+      })();
+
+      // Slider label helpers
+      function readLevelLabel(v) {
+        if (v <= 2) return 'Easy';
+        if (v === 3) return 'Medium';
+        return 'Hard';
+      }
+      function sentenceLengthLabel(v) {
+        return `${v} words`;
+      }
+
+      const readSlider = document.getElementById('read-level-slider');
+      const sentenceSlider = document.getElementById('sentence-length-slider');
+      const readLabel = document.getElementById('read-level-label');
+      const sentenceLabel = document.getElementById('sentence-length-label');
+
+      readSlider.addEventListener('input', () => {
+        readLabel.textContent = readLevelLabel(parseInt(readSlider.value));
+      });
+      sentenceSlider.addEventListener('input', () => {
+        sentenceLabel.textContent = sentenceLengthLabel(parseInt(sentenceSlider.value));
+      });
+
+      // Theme inline picker
+      const themeCustomInput = document.getElementById('theme-custom-input');
+      const themeChips = document.querySelectorAll('.theme-chip');
+
+      let selectedThemes = new Set();
+
+      function getAllThemes() {
+        const customVal = themeCustomInput.value.trim();
+        const allThemes = [...selectedThemes];
+        if (customVal) {
+          allThemes.push(...customVal.split(',').map(s => s.trim()).filter(Boolean));
+        }
+        return allThemes;
+      }
+
+      themeChips.forEach(chip => {
+        chip.addEventListener('click', () => {
+          const t = chip.dataset.theme;
+          if (selectedThemes.has(t)) {
+            selectedThemes.delete(t);
+            chip.classList.remove('selected');
+          } else {
+            selectedThemes.add(t);
+            chip.classList.add('selected');
+          }
+        });
+      });
+
+      // Expose getter for script2.js
+      window.getStorySettings = function () {
+        const readVal = parseInt(readSlider.value);
+        const sentenceVal = parseInt(sentenceSlider.value);
+        const allThemes = getAllThemes();
+        const themeVal = allThemes.length > 0 ? allThemes.join(', ') : '';
+
+        return {
+          readLevel: readLevelLabel(readVal).toLowerCase(),
+          sentenceLength: sentenceVal,
+          theme: themeVal
+        };
+      };
+    </script>
+
+    <script src="/marked.min.js"></script>
+    <script src="script2.js"></script>
+  </body>
+</html>

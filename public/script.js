@@ -13,6 +13,7 @@ const systemID = _urlParams.get("systemID") || null;
 // In-memory conversation history for multi-turn context
 const HISTORY_LIMIT = 5;
 const conversationHistory = [];
+let storyRoundCount = 0;
 
 function addMessage(text, type = "user") {
   const wrapper = document.createElement("div");
@@ -218,6 +219,8 @@ async function loadConversationHistory() {
 loadConversationHistory();
 
 function addStoryWidgets(interactionId, userWrapper, botWrapper, originalPrompt) {
+  storyRoundCount++;
+  const roundAtGeneration = storyRoundCount;
   const widgetWrapper = document.createElement("div");
   widgetWrapper.className = "story-widgets";
 
@@ -298,17 +301,18 @@ function addStoryWidgets(interactionId, userWrapper, botWrapper, originalPrompt)
     regenerateBtn.disabled = true;
   }
 
-  function postAction(action) {
+  function postAction(action, extraData = {}) {
     fetch("/story-action", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ interactionId, action, participantID, systemID }),
+      body: JSON.stringify({ interactionId, action, participantID, systemID, ...extraData }),
     }).catch((err) => console.error("Failed to save story action:", err));
     logEvent("click", "story-action-" + action);
   }
 
   acceptBtn.addEventListener("click", () => {
-    postAction("accept");
+    postAction("accept", { roundsToAccept: roundAtGeneration });
+    storyRoundCount = 0;
     disableAllActions();
     acceptBtn.textContent = "Accepted";
     botWrapper.style.flexDirection = "column";

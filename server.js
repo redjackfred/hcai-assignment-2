@@ -345,12 +345,16 @@ app.post('/rate-story', async (req, res) => {
 });
 
 app.post('/story-action', async (req, res) => {
-  const { interactionId, action } = req.body;
+  const { interactionId, action, roundsToAccept } = req.body;
   try {
     if (!interactionId || !action) {
       return res.status(400).json({ error: 'interactionId and action are required' });
     }
-    await Interaction.findByIdAndUpdate(interactionId, { userAction: action });
+    const update = { userAction: action };
+    if (action === 'accept' && roundsToAccept != null) {
+      update.roundsToAccept = Number(roundsToAccept);
+    }
+    await Interaction.findByIdAndUpdate(interactionId, update);
     res.status(200).json({ success: true });
   } catch (error) {
     console.error('Error saving story action:', error.message);

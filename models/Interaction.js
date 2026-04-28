@@ -25,6 +25,7 @@ const InteractionSchema = new Schema({
     confidenceMetrics: { type: ConfidenceMetricsSchema, default: null },
     userRating: { type: Number, default: null },
     userAction: { type: String, enum: ['accept', 'discard', 'regenerate'], default: null },
+    roundsToAccept: { type: Number, default: null },
     timestamp: { type: Date, default: Date.now }
 });
 module.exports = mongoose.model('Interaction', InteractionSchema);

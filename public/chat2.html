@@ -120,6 +120,92 @@
         box-sizing: border-box;
       }
 
+      .story-widgets {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        padding: 0.4rem 0.6rem 0.6rem;
+        max-width: 75%;
+      }
+
+      .story-rating {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .rating-label {
+        font-size: 0.8rem;
+        color: #6b7280;
+        white-space: nowrap;
+      }
+
+      .stars-container {
+        display: flex;
+        gap: 0.1rem;
+      }
+
+      .star-btn {
+        background: none;
+        border: none;
+        padding: 0;
+        font-size: 1.2rem;
+        color: #f59e0b;
+        cursor: pointer;
+        line-height: 1;
+        transition: transform 0.1s;
+      }
+
+      .star-btn:hover:not(:disabled) {
+        transform: scale(1.25);
+      }
+
+      .star-btn:disabled {
+        cursor: default;
+        transform: none;
+      }
+
+      .story-actions {
+        display: flex;
+        gap: 0.4rem;
+      }
+
+      .story-action-btn {
+        padding: 0.3rem 0.75rem;
+        border: none;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        transition: background 0.15s;
+      }
+
+      .story-action-btn:disabled {
+        opacity: 0.45;
+        cursor: default;
+      }
+
+      .accept-btn  { background: #3B82F6; color: white; }
+      .accept-btn:hover:not(:disabled)  { background: #2563eb; }
+
+      .discard-btn { background: #ef4444; color: white; }
+      .discard-btn:hover:not(:disabled) { background: #dc2626; }
+
+      .regenerate-btn { background: #6b7280; color: white; }
+      .regenerate-btn:hover:not(:disabled) { background: #4b5563; }
+
+      .story-badge {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        padding: 0.2rem 0.55rem;
+        border-radius: 10px;
+        margin-top: 0.3rem;
+      }
+
+      .accepted-badge { background: #16a34a; color: white; }
+      .discarded-badge { background: #9ca3af; color: white; }
+      .regenerate-badge { background: #f59e0b; color: white; }
+
       /* Override send button color for system 2 */
       #send-btn {
         background-color: #16a34a;

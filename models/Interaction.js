@@ -23,6 +23,8 @@ const InteractionSchema = new Schema({
     retrievalMethod: { type: String },
     retrievedDocuments: { type: [RetrievedDocumentSchema], default: [] },
     confidenceMetrics: { type: ConfidenceMetricsSchema, default: null },
-    timestamp: { type: Date, default: Date.now } // Log the time of interaction
+    userRating: { type: Number, default: null },
+    userAction: { type: String, enum: ['accept', 'discard', 'regenerate'], default: null },
+    timestamp: { type: Date, default: Date.now }
 });
 module.exports = mongoose.model('Interaction', InteractionSchema);

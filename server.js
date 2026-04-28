@@ -73,10 +73,13 @@ If reference materials are provided, incorporate relevant details naturally into
 ${contextText}`;
   }
 
-  // Default system 1 prompt
-  return `You are a professional assistant. Answer the user's questions based on the "Reference Materials" provided below.
-If the materials do not contain relevant information, state this honestly.
-Format your response using Markdown (use headings, bullet points, bold, or code blocks where appropriate).
+  // System 1 baseline story prompt
+  return `You are a creative story-telling AI. Generate an engaging, imaginative story based on the user's request.
+Start with a short story title as a Markdown heading.
+Keep the story complete with a clear ending.
+Use short paragraphs with clear spacing between them.
+Format your response using Markdown.
+If reference materials are provided, incorporate relevant details naturally into the story.
 
 ### Reference Materials ###
 ${contextText}`;
@@ -190,7 +193,7 @@ app.post('/chat', async (req, res) => {
     const storyReadLevel = storySettings?.readLevel || 'medium';
     const maxTokens = isStoryMode
       ? (storyTokenBudgets[storyReadLevel] || storyTokenBudgets.medium)
-      : 300;
+      : 1000;
     const availableHistory = Array.isArray(conversationHistory) ? conversationHistory : [];
     const storyHistoryRequested = isStoryMode && shouldUseStoryHistory(message);
     const useStoryHistory = storyHistoryRequested && availableHistory.length > 0;
@@ -240,8 +243,12 @@ app.post('/chat', async (req, res) => {
     });
     await chat_event.save();
 
+    const isStory = botResponse.trimStart().startsWith('#');
+
     res.json({
       response: botResponse,
+      interactionId: chat_event._id,
+      isStory,
       retrievedDocuments,
       confidenceMetrics
     });
@@ -320,6 +327,34 @@ app.post("/upload-document", upload.single("document"), async (req, res) => {
   } catch (error) {
     console.error('Error uploading document:', error);
     res.status(500).json({ error: 'Failed to upload document' });
+  }
+});
+
+app.post('/rate-story', async (req, res) => {
+  const { interactionId, rating } = req.body;
+  try {
+    if (!interactionId || rating == null) {
+      return res.status(400).json({ error: 'interactionId and rating are required' });
+    }
+    await Interaction.findByIdAndUpdate(interactionId, { userRating: Number(rating) });
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error saving rating:', error.message);
+    res.status(500).json({ error: 'Server Error' });
+  }
+});
+
+app.post('/story-action', async (req, res) => {
+  const { interactionId, action } = req.body;
+  try {
+    if (!interactionId || !action) {
+      return res.status(400).json({ error: 'interactionId and action are required' });
+    }
+    await Interaction.findByIdAndUpdate(interactionId, { userAction: action });
+    res.status(200).json({ success: true });
+  } catch (error) {
+    console.error('Error saving story action:', error.message);
+    res.status(500).json({ error: 'Server Error' });
   }
 });
 

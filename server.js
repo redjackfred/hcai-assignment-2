@@ -35,9 +35,9 @@ function buildSystemPrompt({ systemID, storySettings, contextText }) {
       hard:   'Use sophisticated vocabulary, varied sentence structures, and rich literary language suitable for advanced readers.',
     };
     const storyLengthConfig = {
-      easy: { sentenceMultiplier: 6, minWords: 90, maxWords: 180 },
-      medium: { sentenceMultiplier: 8, minWords: 160, maxWords: 300},
-      hard: { sentenceMultiplier: 10, minWords: 260, maxWords: 480},
+      easy: { sentenceMultiplier: 6, minWords: 90, maxWords: 180, paragraphs: 3 },
+      medium: { sentenceMultiplier: 8, minWords: 160, maxWords: 300, paragraphs: 4 },
+      hard: { sentenceMultiplier: 10, minWords: 260, maxWords: 480, paragraphs: 5 },
     };
     const readLevel = readLevelInstructions[selectedReadLevel] || readLevelInstructions.medium;
     const wordLimit = Number(storySettings.sentenceLength) || 20;
@@ -49,8 +49,8 @@ function buildSystemPrompt({ systemID, storySettings, contextText }) {
     );
     const storyLengthInstruction = `Because the read level is "${selectedReadLevel}", keep the full story around ${targetWordCount} words total and organize it into about ${lengthConfig.paragraphs} short paragraphs. Lower read levels must produce shorter stories than higher read levels.`;
     const themeLine = storySettings.theme
-      ? `Weave the following themes or elements naturally into the story: ${storySettings.theme}.`
-      : '';
+      ? `The selected theme or themes are mandatory and must appear clearly in the story: ${storySettings.theme}. Make at least one selected theme central to the main character, setting, or plot. Do not replace the selected theme with an unrelated one.`
+      : 'If no theme is selected, choose a child-friendly imaginative theme that fits the request.';
 
     console.log('[buildSystemPrompt] readLevel ->', selectedReadLevel, '|', readLevel);
     console.log('[buildSystemPrompt] sentenceLength -> max %d words', wordLimit);
@@ -62,6 +62,7 @@ ${readLevel}
 ${sentenceLength}
 ${storyLengthInstruction}
 ${themeLine}
+Always prioritize the current story request and the currently selected themes over any earlier conversation context.
 Make the story complete, with a clear ending instead of stopping mid-scene.
 Format your response using Markdown.
 Start with a short story title as a Markdown heading.
@@ -79,6 +80,52 @@ Format your response using Markdown (use headings, bullet points, bold, or code 
 
 ### Reference Materials ###
 ${contextText}`;
+}
+
+function shouldUseStoryHistory(message) {
+  const normalizedMessage = (message || '').trim().toLowerCase();
+
+  if (!normalizedMessage) {
+    return false;
+  }
+
+  const followUpPatterns = [
+    /\bcontinue\b/,
+    /\bkeep going\b/,
+    /\bgo on\b/,
+    /\bwhat happens next\b/,
+    /\bnext (chapter|part|scene)\b/,
+    /\bfinish the story\b/,
+    /\bmake (the|her|him|it|them)\b/,
+    /\badd (a|an|the)\b/,
+    /\bchange (the|her|his|its|their|this)\b/,
+    /\brewrite (the|this)\b/,
+    /\bedit (the|this)\b/,
+    /\bmodify (the|this)\b/,
+    /\breplace (the|this)\b/,
+    /\bremove (the|this)\b/,
+  ];
+
+  return followUpPatterns.some((pattern) => pattern.test(normalizedMessage));
+}
+
+function buildStoryUserPrompt({ message, storySettings, useStoryHistory, historyWasRequested }) {
+  const promptSections = [
+    useStoryHistory
+      ? 'Use the recent conversation as the current story context. Continue or revise that story according to the request below.'
+      : (historyWasRequested
+        ? 'No earlier story context is available, so create a fresh standalone story that best fits the request below.'
+        : 'Create a fresh standalone story. Do not continue any previous story.'),
+    `Story request: ${message}`,
+    `Required read level: ${storySettings?.readLevel || 'medium'}`,
+    `Maximum words per sentence: ${Number(storySettings?.sentenceLength) || 20}`,
+  ];
+
+  if (storySettings?.theme) {
+    promptSections.push(`Required themes: ${storySettings.theme}. These themes must appear explicitly in the story.`);
+  }
+
+  return promptSections.join('\n');
 }
 
 // Serves static files from the "public" folder
@@ -133,6 +180,7 @@ app.post('/chat', async (req, res) => {
       ? relevantChunks.map(c => `[Source: ${c.documentName}]\n${c.chunkText}`).join("\n\n---\n\n")
       : "No relevant reference materials found.";
 
+    const isStoryMode = Number(systemID) % 2 === 0 && storySettings;
     const systemPrompt = buildSystemPrompt({ systemID, storySettings, contextText });
     const storyTokenBudgets = {
       easy: 320,
@@ -140,17 +188,29 @@ app.post('/chat', async (req, res) => {
       hard: 760,
     };
     const storyReadLevel = storySettings?.readLevel || 'medium';
-    const maxTokens = Number(systemID) % 2 === 0
+    const maxTokens = isStoryMode
       ? (storyTokenBudgets[storyReadLevel] || storyTokenBudgets.medium)
       : 300;
-
-    const priorMessages = Array.isArray(conversationHistory) ? conversationHistory : [];
+    const availableHistory = Array.isArray(conversationHistory) ? conversationHistory : [];
+    const storyHistoryRequested = isStoryMode && shouldUseStoryHistory(message);
+    const useStoryHistory = storyHistoryRequested && availableHistory.length > 0;
+    const priorMessages = isStoryMode
+      ? (useStoryHistory ? availableHistory : [])
+      : availableHistory;
+    const currentUserMessage = isStoryMode
+      ? buildStoryUserPrompt({
+        message,
+        storySettings,
+        useStoryHistory,
+        historyWasRequested: storyHistoryRequested,
+      })
+      : message;
     const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: 'system', content: systemPrompt },
         ...priorMessages,
-        { role: 'user', content: message }
+        { role: 'user', content: currentUserMessage }
       ],
       max_tokens: maxTokens,
     });

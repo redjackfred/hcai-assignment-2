@@ -60,9 +60,8 @@ async function redirectToQualtrics() {
 }
 
 function goToAssignedSystem() {
-  const route = workflowSystemID === "2" ? "/chat2" : "/chat";
   logWorkflowEvent("prototype-btn").finally(() => {
-    window.location.href = `${route}?participantID=${encodeURIComponent(workflowParticipantID)}&systemID=${encodeURIComponent(workflowSystemID)}`;
+    window.location.href = `/chat?participantID=${encodeURIComponent(workflowParticipantID)}&systemID=${encodeURIComponent(workflowSystemID)}`;
   });
 }
 

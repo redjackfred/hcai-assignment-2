@@ -4,13 +4,18 @@ const messagesContainer = document.getElementById("messages");
 const retrievalSelect = document.getElementById("retrieval-select");
 const uploadBtn = document.getElementById("upload-btn");
 const fileInput = document.getElementById("file-input");
+const readLevelSlider = document.getElementById("read-level-slider");
+const sentenceLengthSlider = document.getElementById("sentence-length-slider");
+const themeCustomInputField = document.getElementById("theme-custom-input");
+const themeChipButtons = document.querySelectorAll(".theme-chip");
 
-// Participant ID — prefer URL query string, fall back to localStorage
-const _urlParams = new URLSearchParams(window.location.search);
-const participantID = _urlParams.get("participantID") || localStorage.getItem("participantID") || "anonymous";
-const systemID = _urlParams.get("systemID") || null;
+const urlParams = new URLSearchParams(window.location.search);
+const participantID = urlParams.get("participantID") || localStorage.getItem("participantID") || "anonymous";
+const systemID = urlParams.get("systemID") || localStorage.getItem("systemID") || "1";
 
-// In-memory conversation history for multi-turn context
+localStorage.setItem("participantID", participantID);
+localStorage.setItem("systemID", systemID);
+
 const HISTORY_LIMIT = 5;
 const conversationHistory = [];
 
@@ -20,6 +25,7 @@ function addMessage(text, type = "user") {
 
   const bubble = document.createElement("div");
   bubble.className = `message-bubble ${type}-message`;
+
   if (type === "bot") {
     bubble.innerHTML = marked.parse(text);
   } else {
@@ -44,13 +50,19 @@ function sendMessage() {
   inputField.value = "";
 
   const recentHistory = conversationHistory.slice(-HISTORY_LIMIT);
+  const storySettings = window.getStorySettings ? window.getStorySettings() : null;
 
   fetch("/chat", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ message: userMessage, retrievalMethod, participantID, systemID, conversationHistory: recentHistory }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: userMessage,
+      retrievalMethod,
+      participantID,
+      systemID,
+      conversationHistory: recentHistory,
+      storySettings,
+    }),
   })
     .then((res) => {
       if (!res.ok) {
@@ -70,7 +82,90 @@ function sendMessage() {
     });
 }
 
+async function loadDocuments() {
+  const response = await fetch("/documents");
+  const docs = await response.json();
+  const documentsList = document.getElementById("uploaded-docs");
+
+  if (!documentsList) {
+    return;
+  }
+
+  documentsList.innerHTML = "";
+  docs.forEach((doc) => {
+    const item = document.createElement("li");
+    item.textContent = `${doc.filename} - ${doc.processingStatus}`;
+    documentsList.appendChild(item);
+  });
+}
+
+function displayEvidence(retrievedDocuments, confidenceMetrics) {
+  const confidenceDisplay = document.getElementById("confidence-display");
+  const evidenceList = document.getElementById("evidence-list");
+
+  if (confidenceMetrics) {
+    const percentage = (confidenceMetrics.overallConfidence * 100).toFixed(1);
+    confidenceDisplay.textContent = `Confidence: ${percentage}%`;
+  } else {
+    confidenceDisplay.textContent = "Confidence: —";
+  }
+
+  evidenceList.innerHTML = "";
+
+  if (retrievedDocuments && retrievedDocuments.length > 0) {
+    retrievedDocuments.forEach((doc) => {
+      const item = document.createElement("li");
+      const score = doc.relevanceScore.toFixed(3);
+      const preview = doc.chunkText.length > 120 ? `${doc.chunkText.slice(0, 120)}…` : doc.chunkText;
+      item.innerHTML = `<strong>${doc.docName}</strong> <span class="evidence-score">(score: ${score})</span><br><small>${preview}</small>`;
+      evidenceList.appendChild(item);
+    });
+    return;
+  }
+
+  const emptyItem = document.createElement("li");
+  emptyItem.textContent = "No evidence retrieved.";
+  evidenceList.appendChild(emptyItem);
+}
+
+function logEvent(eventType, elementName) {
+  fetch("/log-event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ participantID, systemID, eventType, elementName }),
+  }).catch((error) => {
+    console.error("Failed to log event:", error);
+  });
+}
+
+async function loadConversationHistory() {
+  try {
+    const response = await fetch("/history", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ participantID }),
+    });
+    const data = await response.json();
+    const allHistory = Array.isArray(data) ? data : data.history;
+
+    if (!allHistory || allHistory.length === 0) {
+      return;
+    }
+
+    const recentHistory = allHistory.slice(-HISTORY_LIMIT);
+    recentHistory.forEach(({ userInput, botResponse }) => {
+      addMessage(userInput, "user");
+      addMessage(botResponse, "bot");
+      conversationHistory.push({ role: "user", content: userInput });
+      conversationHistory.push({ role: "assistant", content: botResponse });
+    });
+  } catch (error) {
+    console.error("[history] Failed to load chat history:", error);
+  }
+}
+
 loadDocuments();
+loadConversationHistory();
 
 sendBtn.addEventListener("click", sendMessage);
 
@@ -81,9 +176,7 @@ inputField.addEventListener("keydown", (event) => {
 });
 
 retrievalSelect.addEventListener("change", (event) => {
-  const method = event.target.value;
-  addMessage(`System: Retrieval method set to ${method}`, "system");
-  console.log(`Retrieval method: ${method}`);
+  addMessage(`System: Retrieval method set to ${event.target.value}`, "system");
 });
 
 uploadBtn.addEventListener("click", async (event) => {
@@ -95,16 +188,10 @@ uploadBtn.addEventListener("click", async (event) => {
     return;
   }
 
-  console.log(`Selected file: ${file.name}`);
-
   const formData = new FormData();
   formData.append("document", file);
 
-  const response = await fetch("/upload-document", {
-    method: "POST",
-    body: formData
-  });
-
+  const response = await fetch("/upload-document", { method: "POST", body: formData });
   const data = await response.json();
 
   if (!response.ok) {
@@ -116,99 +203,28 @@ uploadBtn.addEventListener("click", async (event) => {
   await loadDocuments();
 });
 
-async function loadDocuments() {
-  const response = await fetch("/documents");
-  const docs = await response.json();
-
-  const documentsList = document.getElementById("uploaded-docs");
-  if (!documentsList) return;
-  documentsList.innerHTML = "";
-
-  docs.forEach(doc => {
-    const listItem = document.createElement("li");
-    listItem.textContent = `${doc.filename} - ${doc.processingStatus}`;
-    documentsList.appendChild(listItem);
-  });
-
-}
-
-
-function displayEvidence(retrievedDocuments, confidenceMetrics) {
-  const confidenceDisplay = document.getElementById("confidence-display");
-  const evidenceList = document.getElementById("evidence-list");
-
-  if (confidenceMetrics) {
-    const pct = (confidenceMetrics.overallConfidence * 100).toFixed(1);
-    confidenceDisplay.textContent = `Confidence: ${pct}%`;
-  } else {
-    confidenceDisplay.textContent = "Confidence: —";
-  }
-
-  evidenceList.innerHTML = "";
-  if (retrievedDocuments && retrievedDocuments.length > 0) {
-    retrievedDocuments.forEach(doc => {
-      const li = document.createElement("li");
-      const score = doc.relevanceScore.toFixed(3);
-      const preview = doc.chunkText.length > 120 ? doc.chunkText.slice(0, 120) + "…" : doc.chunkText;
-      li.innerHTML = `<strong>${doc.docName}</strong> <span class="evidence-score">(score: ${score})</span><br><small>${preview}</small>`;
-      evidenceList.appendChild(li);
-    });
-  } else {
-    const li = document.createElement("li");
-    li.textContent = "No evidence retrieved.";
-    evidenceList.appendChild(li);
-  }
-}
-
-// Event logging
-function logEvent(eventType, elementName) {
-  fetch("/log-event", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ participantID, systemID, eventType, elementName }),
-  }).catch((err) => console.error("Failed to log event:", err));
-}
-
 const trackedElements = [
   { el: sendBtn, name: "send-btn" },
   { el: inputField, name: "user-input" },
   { el: retrievalSelect, name: "retrieval-select" },
   { el: uploadBtn, name: "upload-btn" },
+  { el: readLevelSlider, name: "read-level-slider" },
+  { el: sentenceLengthSlider, name: "sentence-length-slider" },
+  { el: themeCustomInputField, name: "theme-custom-input" },
 ];
 
 trackedElements.forEach(({ el, name }) => {
-  el.addEventListener("click", () => logEvent("click", name));
-  el.addEventListener("mouseenter", () => logEvent("hover", name));
-  el.addEventListener("focus", () => logEvent("focus", name));
+  el?.addEventListener("click", () => logEvent("click", name));
+  el?.addEventListener("mouseenter", () => logEvent("hover", name));
+  el?.addEventListener("focus", () => logEvent("focus", name));
 });
 
-async function loadConversationHistory() {
-  console.log("[history] fetching history for participantID:", participantID);
-  try {
-    const res = await fetch("/history", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ participantID }),
-    });
-    console.log("[history] response status:", res.status);
-    const data = await res.json();
-    console.log("[history] data received:", data);
-    const allHistory = Array.isArray(data) ? data : data.history;
-    if (!allHistory || allHistory.length === 0) {
-      console.log("[history] no history found for this participant");
-      return;
-    }
-    const recent = allHistory.slice(-HISTORY_LIMIT);
-    console.log(`[history] loading last ${recent.length} interaction(s)`);
-    recent.forEach(({ userInput, botResponse }) => {
-      addMessage(userInput, "user");
-      addMessage(botResponse, "bot");
-      conversationHistory.push({ role: "user", content: userInput });
-      conversationHistory.push({ role: "assistant", content: botResponse });
-    });
-  } catch (err) {
-    console.error("[history] Failed to load chat history:", err);
-  }
-}
+themeChipButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    logEvent("click", "theme-button");
+  });
+});
 
-loadConversationHistory();
+themeCustomInputField?.addEventListener("change", () => {
+  logEvent("change", "theme-custom-input");
+});

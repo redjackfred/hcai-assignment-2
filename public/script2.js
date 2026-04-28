@@ -31,6 +31,7 @@ function addMessage(text, type = "user") {
   wrapper.appendChild(bubble);
   messagesContainer.appendChild(wrapper);
   messagesContainer.scrollTop = messagesContainer.scrollHeight;
+  return wrapper;
 }
 
 function sendMessage() {
@@ -66,10 +67,13 @@ function sendMessage() {
     })
     .then((data) => {
       const botReply = data.response || "No response from bot.";
-      addMessage(botReply, "bot");
+      const botWrapper = addMessage(botReply, "bot");
       displayEvidence(data.retrievedDocuments, data.confidenceMetrics);
       conversationHistory.push({ role: "user", content: userMessage });
       conversationHistory.push({ role: "assistant", content: botReply });
+      if (data.isStory && data.interactionId) {
+        addQuizWidget(data.interactionId, botReply, botWrapper, storySettings?.readLevel || 'medium');
+      }
     })
     .catch((error) => {
       console.error("Failed to send message to server:", error);
@@ -176,6 +180,137 @@ themeCustomInputField.addEventListener("change", () => {
   logEvent("change", "theme-custom-input");
 });
 
+function renderQuizQuestions(widget, interactionId, questions, submittedAnswers = null) {
+  widget.innerHTML = "";
+  const LABELS = ["A", "B", "C", "D"];
+  const isSubmitted = submittedAnswers !== null;
+  const userAnswers = isSubmitted ? [...submittedAnswers] : new Array(questions.length).fill(null);
+
+  const header = document.createElement("p");
+  header.className = "quiz-header";
+  header.textContent = "Story Comprehension Quiz";
+  widget.appendChild(header);
+
+  questions.forEach((q, qi) => {
+    const qDiv = document.createElement("div");
+    qDiv.className = "quiz-question";
+
+    const qText = document.createElement("p");
+    qText.className = "q-text";
+    qText.textContent = `${qi + 1}. ${q.question}`;
+    qDiv.appendChild(qText);
+
+    const optDiv = document.createElement("div");
+    optDiv.className = "q-options";
+
+    q.options.forEach((opt, oi) => {
+      const label = document.createElement("label");
+      const radio = document.createElement("input");
+      radio.type = "radio";
+      radio.name = `q${qi}-${interactionId}`;
+      radio.value = oi;
+      radio.disabled = isSubmitted;
+      if (isSubmitted) {
+        if (oi === submittedAnswers[qi]) radio.checked = true;
+        if (oi === q.correctAnswer) label.classList.add("correct");
+        else if (oi === submittedAnswers[qi] && submittedAnswers[qi] !== q.correctAnswer) label.classList.add("wrong");
+      } else {
+        radio.addEventListener("change", () => { userAnswers[qi] = oi; });
+      }
+      label.appendChild(radio);
+      label.appendChild(document.createTextNode(` ${LABELS[oi]}. ${opt}`));
+      optDiv.appendChild(label);
+    });
+
+    qDiv.appendChild(optDiv);
+    widget.appendChild(qDiv);
+  });
+
+  if (isSubmitted) {
+    const score = questions.filter((q, i) => submittedAnswers[i] === q.correctAnswer).length;
+    const scoreEl = document.createElement("p");
+    scoreEl.className = "quiz-score";
+    scoreEl.textContent = `Score: ${score} / ${questions.length}`;
+    widget.appendChild(scoreEl);
+  } else {
+    const submitBtn = document.createElement("button");
+    submitBtn.className = "quiz-submit-btn";
+    submitBtn.textContent = "Submit Quiz";
+    widget.appendChild(submitBtn);
+
+    submitBtn.addEventListener("click", async () => {
+      if (userAnswers.some(a => a === null)) {
+        alert("Please answer all questions before submitting.");
+        return;
+      }
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting…";
+      console.log('[submit] interactionId:', interactionId, '| userAnswers:', userAnswers);
+      try {
+        const res = await fetch("/submit-quiz", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ interactionId, userAnswers }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed");
+        renderQuizQuestions(widget, interactionId, questions, userAnswers);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        logEvent("click", "quiz-submit");
+      } catch (err) {
+        submitBtn.textContent = `Failed: ${err.message}`;
+        submitBtn.disabled = false;
+        console.error("Quiz submit error:", err);
+      }
+    });
+  }
+}
+
+function addQuizWidget(interactionId, storyText, botWrapper, readLevel, skipScroll = false, existingQuiz = null) {
+  const widget = document.createElement("div");
+  widget.className = "quiz-widget";
+  messagesContainer.appendChild(widget);
+
+  if (!skipScroll) {
+    const offset = botWrapper.getBoundingClientRect().top - messagesContainer.getBoundingClientRect().top;
+    messagesContainer.scrollTop += offset;
+  }
+
+  if (existingQuiz) {
+    const submittedAnswers = existingQuiz.status === 'submitted'
+      ? existingQuiz.questions.map(q => q.userAnswer)
+      : null;
+    renderQuizQuestions(widget, interactionId, existingQuiz.questions, submittedAnswers);
+    return;
+  }
+
+  const takeBtn = document.createElement("button");
+  takeBtn.className = "quiz-btn";
+  takeBtn.textContent = "Take Quiz";
+  widget.appendChild(takeBtn);
+
+  takeBtn.addEventListener("click", async () => {
+    takeBtn.disabled = true;
+    takeBtn.textContent = "Generating quiz…";
+    try {
+      const res = await fetch("/generate-quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storyText, interactionId, readLevel, participantID, systemID }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      renderQuizQuestions(widget, interactionId, data.questions, null);
+      logEvent("click", "quiz-take");
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    } catch (err) {
+      takeBtn.textContent = "Failed to load quiz. Try again.";
+      takeBtn.disabled = false;
+      console.error("Quiz generation error:", err);
+    }
+  });
+}
+
 async function loadConversationHistory() {
   try {
     const res = await fetch("/history", {
@@ -187,12 +322,22 @@ async function loadConversationHistory() {
     const allHistory = Array.isArray(data) ? data : data.history;
     if (!allHistory || allHistory.length === 0) return;
     const recent = allHistory.slice(-HISTORY_LIMIT);
-    recent.forEach(({ userInput, botResponse }) => {
+    for (const { _id, userInput, botResponse } of recent) {
       addMessage(userInput, "user");
-      addMessage(botResponse, "bot");
+      const botWrapper = addMessage(botResponse, "bot");
       conversationHistory.push({ role: "user", content: userInput });
       conversationHistory.push({ role: "assistant", content: botResponse });
-    });
+      const isStory = botResponse.trimStart().startsWith('#');
+      if (isStory && _id) {
+        const readLevel = window.getStorySettings ? window.getStorySettings().readLevel : 'medium';
+        let existingQuiz = null;
+        try {
+          const qRes = await fetch(`/quiz/${_id}`);
+          if (qRes.ok) existingQuiz = await qRes.json();
+        } catch (_) {}
+        addQuizWidget(_id, botResponse, botWrapper, readLevel, true, existingQuiz);
+      }
+    }
   } catch (err) {
     console.error("[history] Failed to load chat history:", err);
   }

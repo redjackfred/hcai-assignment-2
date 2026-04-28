@@ -15,6 +15,7 @@ const QUALTRICS_SURVEY_URL = 'https://usfca.qualtrics.com/jfe/form/SV_8kSV6w3WpE
 const Interaction = require('./models/Interaction');
 const EventLog = require('./models/EventLog');
 const Document = require('./models/Document');
+const QuizResult = require('./models/QuizResult');
 const documentProcessor = require("./services/documentProcessor");
 const embeddingService = require('./services/embeddingService');
 const retrievalService = require('./services/retrievalService');
@@ -359,6 +360,101 @@ app.post('/story-action', async (req, res) => {
   } catch (error) {
     console.error('Error saving story action:', error.message);
     res.status(500).json({ error: 'Server Error' });
+  }
+});
+
+app.post('/generate-quiz', async (req, res) => {
+  const { storyText, interactionId, readLevel } = req.body;
+  if (!storyText) {
+    return res.status(400).json({ error: 'storyText is required' });
+  }
+
+  const quizLevelInstructions = {
+    easy: 'Use very simple language suitable for young children (grades 1–3). Questions should ask about obvious facts: who the main character is, where the story happens, or what happened first. Answer choices should be clearly different and use simple words.',
+    medium: 'Use moderate language suitable for middle-grade readers (grades 4–6). Mix factual recall with basic inference questions. Answer choices can be closer together but still clearly distinguishable.',
+    hard: 'Use sophisticated language suitable for advanced readers. Include questions that require inference, understanding of character motivation, cause and effect, theme, and vocabulary in context. Answer choices should be nuanced and require careful thought.',
+  };
+  const levelInstruction = quizLevelInstructions[readLevel] || quizLevelInstructions.medium;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `You are a reading comprehension quiz generator. Given a story, generate exactly 4 multiple-choice questions that test understanding of the story content.
+Difficulty level: ${readLevel || 'medium'}. ${levelInstruction}
+Return a JSON object with a "questions" array. Each item must have:
+- "question": the question string
+- "options": array of exactly 4 answer strings (plain text, no A/B/C/D prefix)
+- "correctAnswer": 0-based index of the correct option`
+        },
+        {
+          role: 'user',
+          content: `Generate comprehension questions for this story:\n\n${storyText}`
+        }
+      ],
+      max_tokens: 800,
+    });
+    const parsed = JSON.parse(response.choices[0].message.content);
+    const questions = parsed.questions;
+
+    const { participantID, systemID } = req.body;
+    const quizRecord = new QuizResult({
+      participantID,
+      systemID: systemID ? Number(systemID) : null,
+      interactionId,
+      questions: questions.map(q => ({ ...q, userAnswer: null })),
+      totalQuestions: questions.length,
+      status: 'generated'
+    });
+    await quizRecord.save();
+
+    res.json({ questions, interactionId });
+  } catch (e) {
+    console.error('Error generating quiz:', e);
+    res.status(500).json({ error: 'Failed to generate quiz' });
+  }
+});
+
+app.post('/submit-quiz', async (req, res) => {
+  const { interactionId, userAnswers } = req.body;
+  console.log('[submit-quiz] interactionId=%s userAnswers=%s', interactionId, JSON.stringify(userAnswers));
+  if (!interactionId) {
+    return res.status(400).json({ error: 'interactionId is missing' });
+  }
+  if (!userAnswers) {
+    return res.status(400).json({ error: 'userAnswers is missing' });
+  }
+  try {
+    const quizRecord = await QuizResult.findOne({ interactionId }).sort({ timestamp: -1 });
+    console.log('[submit-quiz] found=%s', quizRecord ? quizRecord._id : 'null');
+    if (!quizRecord) return res.status(404).json({ error: 'Quiz not found — please regenerate the quiz.' });
+
+    const score = userAnswers.filter((ans, i) => Number(ans) === quizRecord.questions[i].correctAnswer).length;
+    quizRecord.questions.forEach((q, i) => { q.userAnswer = Number(userAnswers[i]); });
+    quizRecord.markModified('questions');
+    quizRecord.score = score;
+    quizRecord.status = 'submitted';
+    await quizRecord.save();
+    console.log('[submit-quiz] saved score=%d/%d', score, quizRecord.totalQuestions);
+
+    res.json({ score, total: quizRecord.totalQuestions });
+  } catch (e) {
+    console.error('[submit-quiz] error:', e.message);
+    res.status(500).json({ error: e.message || 'Failed to submit quiz' });
+  }
+});
+
+app.get('/quiz/:interactionId', async (req, res) => {
+  try {
+    const quiz = await QuizResult.findOne({ interactionId: req.params.interactionId }).sort({ timestamp: -1 });
+    if (!quiz) return res.status(404).json({ error: 'Not found' });
+    res.json(quiz);
+  } catch (e) {
+    console.error('Error fetching quiz:', e);
+    res.status(500).json({ error: 'Failed to fetch quiz' });
   }
 });
 

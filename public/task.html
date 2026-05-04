@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Task Instructions</title>
+    <link rel="stylesheet" href="style.css" />
+    <style>
+      body {
+        background: #f3f4f6;
+      }
+
+      .task-shell {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+      }
+
+      .task-card {
+        width: min(760px, 100%);
+        background: #ffffff;
+        border-radius: 16px;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+        padding: 32px;
+      }
+
+      .task-card h1 {
+        margin-bottom: 8px;
+        color: #1e3a5f;
+      }
+
+      .task-card h2 {
+        font-size: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #0f766e;
+        margin: 24px 0 8px;
+      }
+
+      .task-card p,
+      .task-card li {
+        color: #4b5563;
+        line-height: 1.6;
+      }
+
+      .task-card ol,
+      .task-card ul {
+        padding-left: 20px;
+        margin: 0;
+      }
+
+      .task-card ol li,
+      .task-card ul li {
+        margin-bottom: 6px;
+      }
+
+      .task-section {
+        margin-top: 16px;
+        padding: 16px;
+        border-radius: 10px;
+        background: #eff6ff;
+        border: 1px solid #bfdbfe;
+      }
+
+      .task-section.goal {
+        background: #f0fdf4;
+        border-color: #bbf7d0;
+      }
+
+      .task-section.completion {
+        background: #fefce8;
+        border-color: #fde68a;
+      }
+
+      .task-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 28px;
+        flex-wrap: wrap;
+      }
+
+      .task-actions .workflow-btn {
+        width: auto;
+        flex: 1 1 auto;
+        text-align: center;
+        padding: 14px 20px;
+      }
+
+      .workflow-btn.secondary {
+        background: #0f766e;
+      }
+
+      .workflow-btn.ghost {
+        background: #4b5563;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="task-shell">
+      <section class="task-card">
+        <h1>Story Generation Task</h1>
+
+        <h2>Scenario</h2>
+        <div class="task-section">
+          <p>
+            Imagine you are helping a 6-year-old child read a bedtime story. You want to generate a
+            story that matches the child's reading ability and interests.
+          </p>
+        </div>
+
+        <h2>Task Instructions</h2>
+        <div class="task-section">
+          <ol>
+            <li>Choose a story theme, such as animals, friendship, space, or adventure.</li>
+            <li>Adjust the difficulty level so the story is appropriate for a 6-year-old child.</li>
+            <li>Adjust the number of words per sentence.</li>
+            <li>Generate a story using the system.</li>
+            <li>Review the story and refine it if needed.</li>
+          </ol>
+        </div>
+
+        <h2>Goal</h2>
+        <div class="task-section goal">
+          <p>
+            Create a story that is easy to understand, engaging, and appropriate for a 6-year-old
+            child.
+          </p>
+        </div>
+
+        <h2>Requirements</h2>
+        <div class="task-section">
+          <ul>
+            <li>The story should be about friendship.</li>
+            <li>The sentences should be short and simple.</li>
+            <li>The total story should be around 100–150 words.</li>
+          </ul>
+        </div>
+
+        <h2>Completion Criteria</h2>
+        <div class="task-section completion">
+          <p>
+            You are done when you are satisfied with the generated story and believe it is
+            appropriate for the target child.
+          </p>
+        </div>
+
+        <div class="task-actions">
+          <button id="back-btn" class="workflow-btn ghost" type="button">
+            ← Back to Study Workflow
+          </button>
+          <button id="continue-btn" class="workflow-btn secondary" type="button">
+            Continue to Pre-task Questionnaire →
+          </button>
+        </div>
+      </section>
+    </main>
+    <script>
+      const taskParams = new URLSearchParams(window.location.search);
+      const taskParticipantID = taskParams.get("participantID") || localStorage.getItem("participantID") || "";
+      const taskSystemID = taskParams.get("systemID") || localStorage.getItem("systemID") || "1";
+
+      document.getElementById("back-btn").addEventListener("click", () => {
+        window.location.href =
+          `/study-workflow.html?participantID=${encodeURIComponent(taskParticipantID)}&systemID=${encodeURIComponent(taskSystemID)}`;
+      });
+
+      document.getElementById("continue-btn").addEventListener("click", () => {
+        const preTaskURL = "https://usfca.qualtrics.com/jfe/form/SV_eG2Cf95z9O2E2BU";
+        window.location.href =
+          `${preTaskURL}?participantID=${encodeURIComponent(taskParticipantID)}&systemID=${encodeURIComponent(taskSystemID)}`;
+      });
+    </script>
+  </body>
+</html>

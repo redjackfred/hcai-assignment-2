@@ -9,6 +9,7 @@ const participantIdDisplay = document.getElementById("participant-id-display");
 const systemIdDisplay = document.getElementById("system-id-display");
 const surveyBtn = document.getElementById("survey-btn");
 const taskBtn = document.getElementById("task-btn");
+const preTaskBtn = document.getElementById("pre-task-btn");
 const prototypeBtn = document.getElementById("prototype-btn");
 
 if (participantIdDisplay) {
@@ -66,12 +67,18 @@ function goToAssignedSystem() {
   });
 }
 
-function showTaskPlaceholder() {
+function goToTaskInstructions() {
   logWorkflowEvent("task-btn").finally(() => {
-    alert("Add your task instructions here or replace this button with a task page link.");
+    window.location.href = `/task.html?participantID=${encodeURIComponent(workflowParticipantID)}&systemID=${encodeURIComponent(workflowSystemID)}`;
   });
 }
 
 surveyBtn?.addEventListener("click", redirectToQualtrics);
+taskBtn?.addEventListener("click", goToTaskInstructions);
+preTaskBtn?.addEventListener("click", () => {
+  const preTaskURL = "https://usfca.qualtrics.com/jfe/form/SV_eG2Cf95z9O2E2BU";
+  logWorkflowEvent("pre-task-btn").finally(() => {
+    window.location.href = `${preTaskURL}?participantID=${encodeURIComponent(workflowParticipantID)}&systemID=${encodeURIComponent(workflowSystemID)}`;
+  });
+});
 prototypeBtn?.addEventListener("click", goToAssignedSystem);
-taskBtn?.addEventListener("click", showTaskPlaceholder);

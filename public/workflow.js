@@ -11,6 +11,7 @@ const surveyBtn = document.getElementById("survey-btn");
 const taskBtn = document.getElementById("task-btn");
 const preTaskBtn = document.getElementById("pre-task-btn");
 const prototypeBtn = document.getElementById("prototype-btn");
+const postTaskBtn = document.getElementById("post-task-btn");
 
 if (participantIdDisplay) {
   participantIdDisplay.textContent = workflowParticipantID || "unknown";
@@ -82,3 +83,9 @@ preTaskBtn?.addEventListener("click", () => {
   });
 });
 prototypeBtn?.addEventListener("click", goToAssignedSystem);
+postTaskBtn?.addEventListener("click", () => {
+  const postTaskURL = "https://usfca.qualtrics.com/jfe/form/SV_6AssvmwOaWYXL2S";
+  logWorkflowEvent("post-task-btn").finally(() => {
+    window.location.href = `${postTaskURL}?participantID=${encodeURIComponent(workflowParticipantID)}&systemID=${encodeURIComponent(workflowSystemID)}`;
+  });
+});

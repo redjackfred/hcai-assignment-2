@@ -153,6 +153,7 @@ app.get('/chat2', (_req, res) => {
 
 app.post('/redirect-to-survey', (req, res) => {
   const participantID = (req.body?.participantID || '').trim();
+  const systemID = (req.body?.systemID || '').trim();
 
   if (!participantID) {
     return res.status(400).send('participantID is required');
@@ -160,6 +161,7 @@ app.post('/redirect-to-survey', (req, res) => {
 
   const surveyUrl = new URL(QUALTRICS_SURVEY_URL);
   surveyUrl.searchParams.set('participantID', participantID);
+  if (systemID) surveyUrl.searchParams.set('systemID', systemID);
 
   res.send(surveyUrl.toString());
 });

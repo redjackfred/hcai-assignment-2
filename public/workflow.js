@@ -45,7 +45,7 @@ async function redirectToQualtrics() {
     const response = await fetch("/redirect-to-survey", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ participantID: workflowParticipantID }),
+      body: JSON.stringify({ participantID: workflowParticipantID, systemID: workflowSystemID }),
     });
 
     if (!response.ok) {
